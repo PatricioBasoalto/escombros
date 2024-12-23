@@ -1,0 +1,1909 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/filter.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>DEPARTAMENTO DE ESCOMBROS 2024</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
+        <script src="data/DIV_ADM_Lmite_2.js"></script>
+        <script src="data/UNIDADES_VECINALES_3.js"></script>
+        <script src="data/escombros_villas_unioncopiar_4.js"></script>
+        <script src="data/escombros_villas_union_5.js"></script>
+        <script src="data/escombros_271124_3copiar_6.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        })
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var title = new L.Control({'position':'topright'});
+        title.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+        };
+        title.update = function () {
+            this._div.innerHTML = '<h2>DEPARTAMENTO DE ESCOMBROS 2024</h2>';
+        };
+        title.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+            if (bounds_group.getLayers().length) {
+                map.fitBounds(bounds_group.getBounds());
+            }
+        }
+        map.createPane('pane_GoogleSatellite_0');
+        map.getPane('pane_GoogleSatellite_0').style.zIndex = 400;
+        var layer_GoogleSatellite_0 = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleSatellite_0',
+            opacity: 1.0,
+            attribution: '<a href="https://www.google.at/permissions/geoguidelines/attr-guide.html">Map data ©2015 Google</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_GoogleSatellite_0;
+        map.addLayer(layer_GoogleSatellite_0);
+        map.createPane('pane_OpenStreetMap_1');
+        map.getPane('pane_OpenStreetMap_1').style.zIndex = 401;
+        var layer_OpenStreetMap_1 = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_1',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+        });
+        layer_OpenStreetMap_1;
+        map.addLayer(layer_OpenStreetMap_1);
+        function pop_DIV_ADM_Lmite_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">limite</th>\
+                        <td>' + (feature.properties['limite'] !== null ? autolinker.link(feature.properties['limite'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">comuna</th>\
+                        <td>' + (feature.properties['comuna'] !== null ? autolinker.link(feature.properties['comuna'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_DIV_ADM_Lmite_2_0() {
+            return {
+                pane: 'pane_DIV_ADM_Lmite_2',
+                opacity: 1,
+                color: 'rgba(0,0,0,1.0)',
+                dashArray: '',
+                lineCap: 'round',
+                lineJoin: 'round',
+                weight: 3.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_DIV_ADM_Lmite_2');
+        map.getPane('pane_DIV_ADM_Lmite_2').style.zIndex = 402;
+        map.getPane('pane_DIV_ADM_Lmite_2').style['mix-blend-mode'] = 'normal';
+        var layer_DIV_ADM_Lmite_2 = new L.geoJson(json_DIV_ADM_Lmite_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_DIV_ADM_Lmite_2',
+            layerName: 'layer_DIV_ADM_Lmite_2',
+            pane: 'pane_DIV_ADM_Lmite_2',
+            onEachFeature: pop_DIV_ADM_Lmite_2,
+            style: style_DIV_ADM_Lmite_2_0,
+        });
+        bounds_group.addLayer(layer_DIV_ADM_Lmite_2);
+        map.addLayer(layer_DIV_ADM_Lmite_2);
+        function pop_UNIDADES_VECINALES_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">uvecinal</th>\
+                        <td>' + (feature.properties['uvecinal'] !== null ? autolinker.link(feature.properties['uvecinal'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_UNIDADES_VECINALES_3_0() {
+            return {
+                pane: 'pane_UNIDADES_VECINALES_3',
+                opacity: 1,
+                color: 'rgba(253,0,0,0.524)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 2.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(232,113,141,0.524)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_UNIDADES_VECINALES_3');
+        map.getPane('pane_UNIDADES_VECINALES_3').style.zIndex = 403;
+        map.getPane('pane_UNIDADES_VECINALES_3').style['mix-blend-mode'] = 'normal';
+        var layer_UNIDADES_VECINALES_3 = new L.geoJson(json_UNIDADES_VECINALES_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_UNIDADES_VECINALES_3',
+            layerName: 'layer_UNIDADES_VECINALES_3',
+            pane: 'pane_UNIDADES_VECINALES_3',
+            onEachFeature: pop_UNIDADES_VECINALES_3,
+            style: style_UNIDADES_VECINALES_3_0,
+        });
+        bounds_group.addLayer(layer_UNIDADES_VECINALES_3);
+        map.addLayer(layer_UNIDADES_VECINALES_3);
+        function pop_escombros_villas_unioncopiar_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">viviendas</th>\
+                        <td>' + (feature.properties['viviendas'] !== null ? autolinker.link(feature.properties['viviendas'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nombre</th>\
+                        <td>' + (feature.properties['nombre'] !== null ? autolinker.link(feature.properties['nombre'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">habitantes</th>\
+                        <td>' + (feature.properties['habitantes'] !== null ? autolinker.link(feature.properties['habitantes'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">zona</th>\
+                        <td>' + (feature.properties['zona'] !== null ? autolinker.link(feature.properties['zona'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">sector</th>\
+                        <td>' + (feature.properties['sector'] !== null ? autolinker.link(feature.properties['sector'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">viv</th>\
+                        <td>' + (feature.properties['viv'] !== null ? autolinker.link(feature.properties['viv'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">eventos_1</th>\
+                        <td>' + (feature.properties['eventos_1'] !== null ? autolinker.link(feature.properties['eventos_1'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">cosoc</th>\
+                        <td>' + (feature.properties['cosoc'] !== null ? autolinker.link(feature.properties['cosoc'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">esc_web</th>\
+                        <td>' + (feature.properties['esc_web'] !== null ? autolinker.link(feature.properties['esc_web'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_escombros_villas_unioncopiar_4_0(feature) {
+            if (feature.properties['count_'] >= 0.000000 && feature.properties['count_'] <= 38.400000 ) {
+                return {
+                pane: 'pane_escombros_villas_unioncopiar_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.705)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(247,252,245,0.705)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['count_'] >= 38.400000 && feature.properties['count_'] <= 76.800000 ) {
+                return {
+                pane: 'pane_escombros_villas_unioncopiar_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.705)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,234,194,0.705)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['count_'] >= 76.800000 && feature.properties['count_'] <= 115.200000 ) {
+                return {
+                pane: 'pane_escombros_villas_unioncopiar_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.705)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(123,199,124,0.705)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['count_'] >= 115.200000 && feature.properties['count_'] <= 153.600000 ) {
+                return {
+                pane: 'pane_escombros_villas_unioncopiar_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.705)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(42,146,75,0.705)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['count_'] >= 153.600000 && feature.properties['count_'] <= 192.000000 ) {
+                return {
+                pane: 'pane_escombros_villas_unioncopiar_4',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.705)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,68,27,0.705)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_escombros_villas_unioncopiar_4');
+        map.getPane('pane_escombros_villas_unioncopiar_4').style.zIndex = 404;
+        map.getPane('pane_escombros_villas_unioncopiar_4').style['mix-blend-mode'] = 'normal';
+        var layer_escombros_villas_unioncopiar_4 = new L.geoJson(json_escombros_villas_unioncopiar_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_escombros_villas_unioncopiar_4',
+            layerName: 'layer_escombros_villas_unioncopiar_4',
+            pane: 'pane_escombros_villas_unioncopiar_4',
+            onEachFeature: pop_escombros_villas_unioncopiar_4,
+            style: style_escombros_villas_unioncopiar_4_0,
+        });
+        bounds_group.addLayer(layer_escombros_villas_unioncopiar_4);
+        map.addLayer(layer_escombros_villas_unioncopiar_4);
+        function pop_escombros_villas_union_5(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">viviendas</th>\
+                        <td>' + (feature.properties['viviendas'] !== null ? autolinker.link(feature.properties['viviendas'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">nombre</th>\
+                        <td>' + (feature.properties['nombre'] !== null ? autolinker.link(feature.properties['nombre'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">habitantes</th>\
+                        <td>' + (feature.properties['habitantes'] !== null ? autolinker.link(feature.properties['habitantes'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">zona</th>\
+                        <td>' + (feature.properties['zona'] !== null ? autolinker.link(feature.properties['zona'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">sector</th>\
+                        <td>' + (feature.properties['sector'] !== null ? autolinker.link(feature.properties['sector'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">viv</th>\
+                        <td>' + (feature.properties['viv'] !== null ? autolinker.link(feature.properties['viv'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">cosoc</th>\
+                        <td>' + (feature.properties['cosoc'] !== null ? autolinker.link(feature.properties['cosoc'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">esc_web</th>\
+                        <td>' + (feature.properties['esc_web'] !== null ? autolinker.link(feature.properties['esc_web'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_escombros_villas_union_5_0(feature) {
+            if (feature.properties['count_viv'] >= 0.000000 && feature.properties['count_viv'] <= 4.400000 ) {
+                return {
+                pane: 'pane_escombros_villas_union_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.705)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(247,251,255,0.705)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['count_viv'] >= 4.400000 && feature.properties['count_viv'] <= 8.800000 ) {
+                return {
+                pane: 'pane_escombros_villas_union_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.705)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(200,220,240,0.705)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['count_viv'] >= 8.800000 && feature.properties['count_viv'] <= 13.200000 ) {
+                return {
+                pane: 'pane_escombros_villas_union_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.705)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(115,178,216,0.705)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['count_viv'] >= 13.200000 && feature.properties['count_viv'] <= 17.600000 ) {
+                return {
+                pane: 'pane_escombros_villas_union_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.705)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(41,121,185,0.705)',
+                interactive: true,
+            }
+            }
+            if (feature.properties['count_viv'] >= 17.600000 && feature.properties['count_viv'] <= 22.000000 ) {
+                return {
+                pane: 'pane_escombros_villas_union_5',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.705)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(8,48,107,0.705)',
+                interactive: true,
+            }
+            }
+        }
+        map.createPane('pane_escombros_villas_union_5');
+        map.getPane('pane_escombros_villas_union_5').style.zIndex = 405;
+        map.getPane('pane_escombros_villas_union_5').style['mix-blend-mode'] = 'normal';
+        var layer_escombros_villas_union_5 = new L.geoJson(json_escombros_villas_union_5, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_escombros_villas_union_5',
+            layerName: 'layer_escombros_villas_union_5',
+            pane: 'pane_escombros_villas_union_5',
+            onEachFeature: pop_escombros_villas_union_5,
+            style: style_escombros_villas_union_5_0,
+        });
+        bounds_group.addLayer(layer_escombros_villas_union_5);
+        map.addLayer(layer_escombros_villas_union_5);
+        function pop_escombros_271124_3copiar_6(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Name</th>\
+                        <td>' + (feature.properties['Name'] !== null ? autolinker.link(feature.properties['Name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Dirección</th>\
+                        <td>' + (feature.properties['Dirección'] !== null ? autolinker.link(feature.properties['Dirección'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Villa_Pobl</th>\
+                        <td>' + (feature.properties['Villa_Pobl'] !== null ? autolinker.link(feature.properties['Villa_Pobl'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Fecha_Ingr</th>\
+                        <td>' + (feature.properties['Fecha_Ingr'] !== null ? autolinker.link(feature.properties['Fecha_Ingr'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Respuesta</th>\
+                        <td>' + (feature.properties['Respuesta'] !== null ? autolinker.link(feature.properties['Respuesta'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Estado</th>\
+                        <td>' + (feature.properties['Estado'] !== null ? autolinker.link(feature.properties['Estado'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Fecha_Cier</th>\
+                        <td>' + (feature.properties['Fecha_Cier'] !== null ? autolinker.link(feature.properties['Fecha_Cier'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">N°</th>\
+                        <td>' + (feature.properties['N°'] !== null ? autolinker.link(feature.properties['N°'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">CIERRE</th>\
+                        <td>' + (feature.properties['CIERRE'] !== null ? autolinker.link(feature.properties['CIERRE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_escombros_271124_3copiar_6_0(feature) {
+            switch(String(feature.properties['Respuesta'])) {
+                case 'Escombro retirado por particular':
+                    return {
+                pane: 'pane_escombros_271124_3copiar_6',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(115,154,223,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'fuera de plazo':
+                    return {
+                pane: 'pane_escombros_271124_3copiar_6',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(75,31,223,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'no se observan escombros via publica':
+                    return {
+                pane: 'pane_escombros_271124_3copiar_6',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(239,54,156,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'se realiza retiro de escombros':
+                    return {
+                pane: 'pane_escombros_271124_3copiar_6',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,255,0,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Se repite tiket':
+                    return {
+                pane: 'pane_escombros_271124_3copiar_6',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(119,227,231,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'sin acceso a material de escombro':
+                    return {
+                pane: 'pane_escombros_271124_3copiar_6',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(209,53,236,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'sin moradores':
+                    return {
+                pane: 'pane_escombros_271124_3copiar_6',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(226,82,74,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Sin respuesta':
+                    return {
+                pane: 'pane_escombros_271124_3copiar_6',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(118,204,155,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Solicitante deja nulo ticket':
+                    return {
+                pane: 'pane_escombros_271124_3copiar_6',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(50,217,20,1.0)',
+                interactive: true,
+            }
+                    break;
+                default:
+                    return {
+                pane: 'pane_escombros_271124_3copiar_6',
+                radius: 6.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(180,227,38,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_escombros_271124_3copiar_6');
+        map.getPane('pane_escombros_271124_3copiar_6').style.zIndex = 406;
+        map.getPane('pane_escombros_271124_3copiar_6').style['mix-blend-mode'] = 'normal';
+        var layer_escombros_271124_3copiar_6 = new L.geoJson(json_escombros_271124_3copiar_6, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_escombros_271124_3copiar_6',
+            layerName: 'layer_escombros_271124_3copiar_6',
+            pane: 'pane_escombros_271124_3copiar_6',
+            onEachFeature: pop_escombros_271124_3copiar_6,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_escombros_271124_3copiar_6_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_escombros_271124_3copiar_6);
+        map.addLayer(layer_escombros_271124_3copiar_6);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var overlaysTree = [
+            {label: 'escombros_271124_3 copiar<br /><table><tr><td style="text-align: center;"><img src="legend/escombros_271124_3copiar_6_Escombroretiradoporparticular0.png" /></td><td>Escombro retirado por particular</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_271124_3copiar_6_fueradeplazo1.png" /></td><td>fuera de plazo</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_271124_3copiar_6_noseobservanescombrosviapublica2.png" /></td><td>no se observan escombros via publica</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_271124_3copiar_6_serealizaretirodeescombros3.png" /></td><td>se realiza retiro de escombros</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_271124_3copiar_6_Serepitetiket4.png" /></td><td>Se repite tiket</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_271124_3copiar_6_sinaccesoamaterialdeescombro5.png" /></td><td>sin acceso a material de escombro</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_271124_3copiar_6_sinmoradores6.png" /></td><td>sin moradores</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_271124_3copiar_6_Sinrespuesta7.png" /></td><td>Sin respuesta</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_271124_3copiar_6_Solicitantedejanuloticket8.png" /></td><td>Solicitante deja nulo ticket</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_271124_3copiar_6_9.png" /></td><td></td></tr></table>', layer: layer_escombros_271124_3copiar_6},
+            {label: 'escombros_villas_union<br /><table><tr><td style="text-align: center;"><img src="legend/escombros_villas_union_5_0440.png" /></td><td>0 - 4,4</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_villas_union_5_44881.png" /></td><td>4,4 - 8,8</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_villas_union_5_881322.png" /></td><td>8,8 - 13,2</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_villas_union_5_1321763.png" /></td><td>13,2 - 17,6</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_villas_union_5_176224.png" /></td><td>17,6 - 22</td></tr></table>', layer: layer_escombros_villas_union_5},
+            {label: 'escombros_villas_union copiar<br /><table><tr><td style="text-align: center;"><img src="legend/escombros_villas_unioncopiar_4_0380.png" /></td><td>0 - 38</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_villas_unioncopiar_4_38771.png" /></td><td>38 - 77</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_villas_unioncopiar_4_771152.png" /></td><td>77 - 115</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_villas_unioncopiar_4_1151543.png" /></td><td>115 - 154</td></tr><tr><td style="text-align: center;"><img src="legend/escombros_villas_unioncopiar_4_1541924.png" /></td><td>154 - 192</td></tr></table>', layer: layer_escombros_villas_unioncopiar_4},
+            {label: '<img src="legend/UNIDADES_VECINALES_3.png" /> UNIDADES_VECINALES', layer: layer_UNIDADES_VECINALES_3},
+            {label: '<img src="legend/DIV_ADM_Lmite_2.png" /> DIV_ADM_Límite', layer: layer_DIV_ADM_Lmite_2},
+            {label: "OpenStreetMap", layer: layer_OpenStreetMap_1},
+            {label: "Google Satellite", layer: layer_GoogleSatellite_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        var mapDiv = document.getElementById('map');
+        var row = document.createElement('div');
+        row.className="row";
+        row.id="all";
+        row.style.height = "100%";
+        var col1 = document.createElement('div');
+        col1.className="col9";
+        col1.id = "mapWindow";
+        col1.style.height = "99%";
+        col1.style.width = "80%";
+        col1.style.display = "inline-block";
+        var col2 = document.createElement('div');
+        col2.className="col3";
+        col2.id = "menu";
+        col2.style.display = "inline-block";
+        mapDiv.parentNode.insertBefore(row, mapDiv);
+        document.getElementById("all").appendChild(col1);
+        document.getElementById("all").appendChild(col2);
+        col1.appendChild(mapDiv)
+        var Filters = {"uvecinal": "str","nombre": "str","Villa_Pobl": "str","Respuesta": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_uvecinal = document.createElement('div');
+            div_uvecinal.id = "div_uvecinal";
+            div_uvecinal.className= "filterselect";
+            document.getElementById("menu").appendChild(div_uvecinal);
+            sel_uvecinal = document.createElement('select');
+            sel_uvecinal.multiple = true;
+            sel_uvecinal.size = 10;
+            sel_uvecinal.id = "sel_uvecinal";
+            var uvecinal_options_str = "<option value='' unselected></option>";
+            sel_uvecinal.onchange = function(){filterFunc()};
+            uvecinal_options_str  += '<option value="A-01">A-01</option>';
+            uvecinal_options_str  += '<option value="A-02">A-02</option>';
+            uvecinal_options_str  += '<option value="A-03">A-03</option>';
+            uvecinal_options_str  += '<option value="A-04">A-04</option>';
+            uvecinal_options_str  += '<option value="A-05">A-05</option>';
+            uvecinal_options_str  += '<option value="A-06">A-06</option>';
+            uvecinal_options_str  += '<option value="A-07">A-07</option>';
+            uvecinal_options_str  += '<option value="A-08">A-08</option>';
+            uvecinal_options_str  += '<option value="A-09">A-09</option>';
+            uvecinal_options_str  += '<option value="A-10">A-10</option>';
+            uvecinal_options_str  += '<option value="A-11">A-11</option>';
+            uvecinal_options_str  += '<option value="A-12">A-12</option>';
+            uvecinal_options_str  += '<option value="A-13">A-13</option>';
+            uvecinal_options_str  += '<option value="A-14">A-14</option>';
+            uvecinal_options_str  += '<option value="A-15">A-15</option>';
+            uvecinal_options_str  += '<option value="A-16">A-16</option>';
+            uvecinal_options_str  += '<option value="A-17">A-17</option>';
+            uvecinal_options_str  += '<option value="A-18">A-18</option>';
+            uvecinal_options_str  += '<option value="A-19">A-19</option>';
+            uvecinal_options_str  += '<option value="A-20">A-20</option>';
+            uvecinal_options_str  += '<option value="A-21">A-21</option>';
+            uvecinal_options_str  += '<option value="A-22">A-22</option>';
+            uvecinal_options_str  += '<option value="A-23">A-23</option>';
+            uvecinal_options_str  += '<option value="A-24">A-24</option>';
+            uvecinal_options_str  += '<option value="A-25">A-25</option>';
+            uvecinal_options_str  += '<option value="A-26">A-26</option>';
+            uvecinal_options_str  += '<option value="A-27">A-27</option>';
+            uvecinal_options_str  += '<option value="A-28">A-28</option>';
+            uvecinal_options_str  += '<option value="A-29">A-29</option>';
+            uvecinal_options_str  += '<option value="A-30">A-30</option>';
+            uvecinal_options_str  += '<option value="A-31">A-31</option>';
+            uvecinal_options_str  += '<option value="A-32">A-32</option>';
+            uvecinal_options_str  += '<option value="A-33">A-33</option>';
+            uvecinal_options_str  += '<option value="A-34">A-34</option>';
+            uvecinal_options_str  += '<option value="A-35">A-35</option>';
+            uvecinal_options_str  += '<option value="A-36">A-36</option>';
+            uvecinal_options_str  += '<option value="A-37">A-37</option>';
+            uvecinal_options_str  += '<option value="A-38">A-38</option>';
+            uvecinal_options_str  += '<option value="A-39">A-39</option>';
+            uvecinal_options_str  += '<option value="A-40">A-40</option>';
+            uvecinal_options_str  += '<option value="A-41">A-41</option>';
+            uvecinal_options_str  += '<option value="A-42">A-42</option>';
+            uvecinal_options_str  += '<option value="A-43">A-43</option>';
+            uvecinal_options_str  += '<option value="A-44">A-44</option>';
+            uvecinal_options_str  += '<option value="A-45">A-45</option>';
+            uvecinal_options_str  += '<option value="A-46">A-46</option>';
+            uvecinal_options_str  += '<option value="A-47">A-47</option>';
+            uvecinal_options_str  += '<option value="A-48">A-48</option>';
+            uvecinal_options_str  += '<option value="A-49">A-49</option>';
+            uvecinal_options_str  += '<option value="A-50">A-50</option>';
+            uvecinal_options_str  += '<option value="A-51">A-51</option>';
+            uvecinal_options_str  += '<option value="A-52">A-52</option>';
+            uvecinal_options_str  += '<option value="A-53">A-53</option>';
+            uvecinal_options_str  += '<option value="A-54">A-54</option>';
+            uvecinal_options_str  += '<option value="A-55">A-55</option>';
+            uvecinal_options_str  += '<option value="A-56">A-56</option>';
+            uvecinal_options_str  += '<option value="A-57">A-57</option>';
+            uvecinal_options_str  += '<option value="A-58">A-58</option>';
+            uvecinal_options_str  += '<option value="A-59">A-59</option>';
+            uvecinal_options_str  += '<option value="A-60">A-60</option>';
+            uvecinal_options_str  += '<option value="A-61">A-61</option>';
+            uvecinal_options_str  += '<option value="A-62">A-62</option>';
+            uvecinal_options_str  += '<option value="A-63">A-63</option>';
+            uvecinal_options_str  += '<option value="A-64">A-64</option>';
+            uvecinal_options_str  += '<option value="A-65">A-65</option>';
+            uvecinal_options_str  += '<option value="A-66">A-66</option>';
+            uvecinal_options_str  += '<option value="A-67">A-67</option>';
+            uvecinal_options_str  += '<option value="A-68">A-68</option>';
+            uvecinal_options_str  += '<option value="A-69">A-69</option>';
+            uvecinal_options_str  += '<option value="A-70">A-70</option>';
+            uvecinal_options_str  += '<option value="A-71">A-71</option>';
+            uvecinal_options_str  += '<option value="A-72">A-72</option>';
+            uvecinal_options_str  += '<option value="A-73">A-73</option>';
+            uvecinal_options_str  += '<option value="A-74">A-74</option>';
+            uvecinal_options_str  += '<option value="A-75">A-75</option>';
+            uvecinal_options_str  += '<option value="A-76">A-76</option>';
+            uvecinal_options_str  += '<option value="A-77">A-77</option>';
+            uvecinal_options_str  += '<option value="A-78">A-78</option>';
+            uvecinal_options_str  += '<option value="A-79">A-79</option>';
+            uvecinal_options_str  += '<option value="A-80">A-80</option>';
+            uvecinal_options_str  += '<option value="B-01">B-01</option>';
+            uvecinal_options_str  += '<option value="B-02">B-02</option>';
+            uvecinal_options_str  += '<option value="B-03">B-03</option>';
+            uvecinal_options_str  += '<option value="B-04">B-04</option>';
+            uvecinal_options_str  += '<option value="B-05">B-05</option>';
+            uvecinal_options_str  += '<option value="B-06">B-06</option>';
+            uvecinal_options_str  += '<option value="B-07">B-07</option>';
+            uvecinal_options_str  += '<option value="B-08">B-08</option>';
+            uvecinal_options_str  += '<option value="B-09">B-09</option>';
+            uvecinal_options_str  += '<option value="B-10">B-10</option>';
+            uvecinal_options_str  += '<option value="B-11">B-11</option>';
+            uvecinal_options_str  += '<option value="B-12">B-12</option>';
+            uvecinal_options_str  += '<option value="B-13">B-13</option>';
+            uvecinal_options_str  += '<option value="B-14">B-14</option>';
+            uvecinal_options_str  += '<option value="B-15">B-15</option>';
+            uvecinal_options_str  += '<option value="B-16">B-16</option>';
+            uvecinal_options_str  += '<option value="B-17">B-17</option>';
+            sel_uvecinal.innerHTML = uvecinal_options_str;
+            div_uvecinal.appendChild(sel_uvecinal);
+            var lab_uvecinal = document.createElement('div');
+            lab_uvecinal.innerHTML = 'uvecinal';
+            lab_uvecinal.className = 'filterlabel';
+            div_uvecinal.appendChild(lab_uvecinal);
+            var reset_uvecinal = document.createElement('div');
+            reset_uvecinal.innerHTML = 'clear filter';
+            reset_uvecinal.className = 'filterlabel';
+            reset_uvecinal.onclick = function() {
+                var options = document.getElementById("sel_uvecinal").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_uvecinal.appendChild(reset_uvecinal);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_nombre = document.createElement('div');
+            div_nombre.id = "div_nombre";
+            div_nombre.className= "filterselect";
+            document.getElementById("menu").appendChild(div_nombre);
+            sel_nombre = document.createElement('select');
+            sel_nombre.multiple = true;
+            sel_nombre.size = 10;
+            sel_nombre.id = "sel_nombre";
+            var nombre_options_str = "<option value='' unselected></option>";
+            sel_nombre.onchange = function(){filterFunc()};
+            nombre_options_str  += '<option value="12 DE MAYO">12 DE MAYO</option>';
+            nombre_options_str  += '<option value="4 ORIENTE">4 ORIENTE</option>';
+            nombre_options_str  += '<option value="ADULTO MAYOR LA SERENA-SAN FRANCISCO">ADULTO MAYOR LA SERENA-SAN FRANCISCO</option>';
+            nombre_options_str  += '<option value="ALFREDO GUZMAN STEWART">ALFREDO GUZMAN STEWART</option>';
+            nombre_options_str  += '<option value="ALTA VISTA DE LA VIÑA">ALTA VISTA DE LA VIÑA</option>';
+            nombre_options_str  += '<option value="ALTO LAS PERDICES">ALTO LAS PERDICES</option>';
+            nombre_options_str  += '<option value="ALTO LO PLANELLA">ALTO LO PLANELLA</option>';
+            nombre_options_str  += '<option value="ALTOS DE MANQUECURA">ALTOS DE MANQUECURA</option>';
+            nombre_options_str  += '<option value="ALTOS DE SAN FRANCISCO">ALTOS DE SAN FRANCISCO</option>';
+            nombre_options_str  += '<option value="ALTOS DEL MAIPO">ALTOS DEL MAIPO</option>';
+            nombre_options_str  += '<option value="ALTOS DEL PEÑÓN">ALTOS DEL PEÑÓN</option>';
+            nombre_options_str  += '<option value="ALTOS DEL RACO">ALTOS DEL RACO</option>';
+            nombre_options_str  += '<option value="ANTONIO HESSIN">ANTONIO HESSIN</option>';
+            nombre_options_str  += '<option value="ARAUCANIA">ARAUCANIA</option>';
+            nombre_options_str  += '<option value="ARBOLEDA DE GABRIELA">ARBOLEDA DE GABRIELA</option>';
+            nombre_options_str  += '<option value="ARCO IRIS DEL SUR">ARCO IRIS DEL SUR</option>';
+            nombre_options_str  += '<option value="ARQUITECTO LUIS PRIETO VIAL">ARQUITECTO LUIS PRIETO VIAL</option>';
+            nombre_options_str  += '<option value="ARTURO MATTE LARRAIN">ARTURO MATTE LARRAIN</option>';
+            nombre_options_str  += '<option value="AZIZE READY">AZIZE READY</option>';
+            nombre_options_str  += '<option value="AÑO 90">AÑO 90</option>';
+            nombre_options_str  += '<option value="BAJOS DE MENA">BAJOS DE MENA</option>';
+            nombre_options_str  += '<option value="BALNEARIO LAS VIZCACHAS">BALNEARIO LAS VIZCACHAS</option>';
+            nombre_options_str  += '<option value="BARRIO CASAS DEL VALLE">BARRIO CASAS DEL VALLE</option>';
+            nombre_options_str  += '<option value="BARRIO INGLES">BARRIO INGLES</option>';
+            nombre_options_str  += '<option value="BARRIO MEDITERRANEO">BARRIO MEDITERRANEO</option>';
+            nombre_options_str  += '<option value="BLANCAS CUMBRES">BLANCAS CUMBRES</option>';
+            nombre_options_str  += '<option value="BRISAS DEL SOL">BRISAS DEL SOL</option>';
+            nombre_options_str  += '<option value="C. SOTOMAYOR (VICTORIA SOTOMAYOR)">C. SOTOMAYOR (VICTORIA SOTOMAYOR)</option>';
+            nombre_options_str  += '<option value="CALLE GABRIELA">CALLE GABRIELA</option>';
+            nombre_options_str  += '<option value="CAMPANARIO PARQUE RESIDENCIAL">CAMPANARIO PARQUE RESIDENCIAL</option>';
+            nombre_options_str  += '<option value="CANAEMPU">CANAEMPU</option>';
+            nombre_options_str  += '<option value="CAROL URZUA (cordillera)">CAROL URZUA (cordillera)</option>';
+            nombre_options_str  += '<option value="CASA NUEVA VIDA NUEVA">CASA NUEVA VIDA NUEVA</option>';
+            nombre_options_str  += '<option value="CASAS DE LA VIÑA">CASAS DE LA VIÑA</option>';
+            nombre_options_str  += '<option value="CASAS DE RUCALHUE">CASAS DE RUCALHUE</option>';
+            nombre_options_str  += '<option value="CASAS DE SAN GUILLERMO 2">CASAS DE SAN GUILLERMO 2</option>';
+            nombre_options_str  += '<option value="CASAS DE TOCORNAL">CASAS DE TOCORNAL</option>';
+            nombre_options_str  += '<option value="CASAS DEL ALTO">CASAS DEL ALTO</option>';
+            nombre_options_str  += '<option value="CASAS DEL HUERTO">CASAS DEL HUERTO</option>';
+            nombre_options_str  += '<option value="CASAS DEL VIÑEDO">CASAS DEL VIÑEDO</option>';
+            nombre_options_str  += '<option value="CASAS VIEJAS">CASAS VIEJAS</option>';
+            nombre_options_str  += '<option value="CENTRO COMERCIAL AV. MEXICO">CENTRO COMERCIAL AV. MEXICO</option>';
+            nombre_options_str  += '<option value="CENTRO COMERCIAL LOS TOROS">CENTRO COMERCIAL LOS TOROS</option>';
+            nombre_options_str  += '<option value="CERRITO ARRIBA">CERRITO ARRIBA</option>';
+            nombre_options_str  += '<option value="CERRO MORADO">CERRO MORADO</option>';
+            nombre_options_str  += '<option value="CHILOE ZONA I">CHILOE ZONA I</option>';
+            nombre_options_str  += '<option value="CIELOS ANDINOS">CIELOS ANDINOS</option>';
+            nombre_options_str  += '<option value="CIUDAD DEL ESTE">CIUDAD DEL ESTE</option>';
+            nombre_options_str  += '<option value="CIUDAD DEL SOL">CIUDAD DEL SOL</option>';
+            nombre_options_str  += '<option value="CLAVERO">CLAVERO</option>';
+            nombre_options_str  += '<option value="CLUB RESIDENCIAL VALLE DEL SOL">CLUB RESIDENCIAL VALLE DEL SOL</option>';
+            nombre_options_str  += '<option value="COLINAS DE CHAYAVIENTOS">COLINAS DE CHAYAVIENTOS</option>';
+            nombre_options_str  += '<option value="COLONIA EL PERAL">COLONIA EL PERAL</option>';
+            nombre_options_str  += '<option value="COMANDANTE FAVERIO">COMANDANTE FAVERIO</option>';
+            nombre_options_str  += '<option value="CONDMINIO VALLE SAN CARLOS">CONDMINIO VALLE SAN CARLOS</option>';
+            nombre_options_str  += '<option value="CONDOMINIO BARRIO BELGICA">CONDOMINIO BARRIO BELGICA</option>';
+            nombre_options_str  += '<option value="CONDOMINIO BARRIO DINAMARCA">CONDOMINIO BARRIO DINAMARCA</option>';
+            nombre_options_str  += '<option value="CONDOMINIO CERRO ALTO II">CONDOMINIO CERRO ALTO II</option>';
+            nombre_options_str  += '<option value="CONDOMINIO DON FRANCISCO">CONDOMINIO DON FRANCISCO</option>';
+            nombre_options_str  += '<option value="CONDOMINIO DON MIGUEL">CONDOMINIO DON MIGUEL</option>';
+            nombre_options_str  += '<option value="CONDOMINIO LAS ACACIAS">CONDOMINIO LAS ACACIAS</option>';
+            nombre_options_str  += '<option value="CONDOMINIO LAS BANDADAS I">CONDOMINIO LAS BANDADAS I</option>';
+            nombre_options_str  += '<option value="CONDOMINIO LAS BANDADAS II">CONDOMINIO LAS BANDADAS II</option>';
+            nombre_options_str  += '<option value="CONDOMINIO LOS LIRIOS">CONDOMINIO LOS LIRIOS</option>';
+            nombre_options_str  += '<option value="CONDOMINIO LOS MAGNOLIOS">CONDOMINIO LOS MAGNOLIOS</option>';
+            nombre_options_str  += '<option value="CONDOMINIO LOS PINOS">CONDOMINIO LOS PINOS</option>';
+            nombre_options_str  += '<option value="CONDOMINIO LUIS MATTE LARRAIN Nº 245 LOTE 4B PARQ">CONDOMINIO LUIS MATTE LARRAIN Nº 245 LOTE 4B PARQ</option>';
+            nombre_options_str  += '<option value="CONDOMINIO MAESTRA GABRIELA">CONDOMINIO MAESTRA GABRIELA</option>';
+            nombre_options_str  += '<option value="CONDOMINIO PLAZA">CONDOMINIO PLAZA</option>';
+            nombre_options_str  += '<option value="CONDOMINIO SAN CARLOS 1144">CONDOMINIO SAN CARLOS 1144</option>';
+            nombre_options_str  += '<option value="CONDOMINIO SAN CARLOS NORTE">CONDOMINIO SAN CARLOS NORTE</option>';
+            nombre_options_str  += '<option value="CONDOMINIO TACORA H4">CONDOMINIO TACORA H4</option>';
+            nombre_options_str  += '<option value="CONDOMINIO TERRANDINA">CONDOMINIO TERRANDINA</option>';
+            nombre_options_str  += '<option value="CORDILLERA">CORDILLERA</option>';
+            nombre_options_str  += '<option value="CORDILLERAS DE DOÑA MARTA">CORDILLERAS DE DOÑA MARTA</option>';
+            nombre_options_str  += '<option value="COSTA AZUL">COSTA AZUL</option>';
+            nombre_options_str  += '<option value="COSTANERA (EX ANGOSTURA)">COSTANERA (EX ANGOSTURA)</option>';
+            nombre_options_str  += '<option value="CUMBRES DEL PEÑON">CUMBRES DEL PEÑON</option>';
+            nombre_options_str  += '<option value="CUMBRES DEL PEÑON II">CUMBRES DEL PEÑON II</option>';
+            nombre_options_str  += '<option value="DEHESA DE LA VIÑA PLANELLA">DEHESA DE LA VIÑA PLANELLA</option>';
+            nombre_options_str  += '<option value="DIEGO PORTALES">DIEGO PORTALES</option>';
+            nombre_options_str  += '<option value="DOCTOR SOTERO DEL RIO">DOCTOR SOTERO DEL RIO</option>';
+            nombre_options_str  += '<option value="DOMINGO EYZAGUIRRE">DOMINGO EYZAGUIRRE</option>';
+            nombre_options_str  += '<option value="DOMINGO TOCORNAL">DOMINGO TOCORNAL</option>';
+            nombre_options_str  += '<option value="DON ANGEL">DON ANGEL</option>';
+            nombre_options_str  += '<option value="DON CARLOS">DON CARLOS</option>';
+            nombre_options_str  += '<option value="DON DOMINGO">DON DOMINGO</option>';
+            nombre_options_str  += '<option value="DON JOSÉ MIGUEL">DON JOSÉ MIGUEL</option>';
+            nombre_options_str  += '<option value="DON LUIS">DON LUIS</option>';
+            nombre_options_str  += '<option value="DON OSVALDO">DON OSVALDO</option>';
+            nombre_options_str  += '<option value="DON PABLO">DON PABLO</option>';
+            nombre_options_str  += '<option value="DON PEPE">DON PEPE</option>';
+            nombre_options_str  += '<option value="DON RAMON">DON RAMON</option>';
+            nombre_options_str  += '<option value="DON VICENTE">DON VICENTE</option>';
+            nombre_options_str  += '<option value="DOÑA FLORENCIA">DOÑA FLORENCIA</option>';
+            nombre_options_str  += '<option value="DOÑA GABRIELA (EX PILCOMAYO)">DOÑA GABRIELA (EX PILCOMAYO)</option>';
+            nombre_options_str  += '<option value="DOÑA JAVIERA">DOÑA JAVIERA</option>';
+            nombre_options_str  += '<option value="EDIFICIO ALTO MAIPO">EDIFICIO ALTO MAIPO</option>';
+            nombre_options_str  += '<option value="EDIFICIO ALTUM">EDIFICIO ALTUM</option>';
+            nombre_options_str  += '<option value="EDIFICIO AURINO SNACHEZ">EDIFICIO AURINO SNACHEZ</option>';
+            nombre_options_str  += '<option value="EDIFICIO CARACOL">EDIFICIO CARACOL</option>';
+            nombre_options_str  += '<option value="EDIFICIO CORDILLERA">EDIFICIO CORDILLERA</option>';
+            nombre_options_str  += '<option value="EDIFICIO DUCASSE">EDIFICIO DUCASSE</option>';
+            nombre_options_str  += '<option value="EDIFICIO ELSACA">EDIFICIO ELSACA</option>';
+            nombre_options_str  += '<option value="EDIFICIO FRANCIA">EDIFICIO FRANCIA</option>';
+            nombre_options_str  += '<option value="EDIFICIO IRARRAZABAL">EDIFICIO IRARRAZABAL</option>';
+            nombre_options_str  += '<option value="EDIFICIO LOS ALAMOS">EDIFICIO LOS ALAMOS</option>';
+            nombre_options_str  += '<option value="EDIFICIO LOS TOROS">EDIFICIO LOS TOROS</option>';
+            nombre_options_str  += '<option value="EDIFICIO MUNICIPAL">EDIFICIO MUNICIPAL</option>';
+            nombre_options_str  += '<option value="EDIFICIO NUCLEO">EDIFICIO NUCLEO</option>';
+            nombre_options_str  += '<option value="EDIFICIO PIÑEIRO">EDIFICIO PIÑEIRO</option>';
+            nombre_options_str  += '<option value="EDIFICIO PLAZA">EDIFICIO PLAZA</option>';
+            nombre_options_str  += '<option value="EDIFICIO PLAZA ORIENTE">EDIFICIO PLAZA ORIENTE</option>';
+            nombre_options_str  += '<option value="EDIFICIO SANTA ANA">EDIFICIO SANTA ANA</option>';
+            nombre_options_str  += '<option value="EDIFICIO TERESA DE INOSTROSA">EDIFICIO TERESA DE INOSTROSA</option>';
+            nombre_options_str  += '<option value="EL ALBA">EL ALBA</option>';
+            nombre_options_str  += '<option value="EL ALGARROBO">EL ALGARROBO</option>';
+            nombre_options_str  += '<option value="EL ALMENDRAL">EL ALMENDRAL</option>';
+            nombre_options_str  += '<option value="EL CABILDO">EL CABILDO</option>';
+            nombre_options_str  += '<option value="EL CALEUCHE">EL CALEUCHE</option>';
+            nombre_options_str  += '<option value="EL CORREGIDOR">EL CORREGIDOR</option>';
+            nombre_options_str  += '<option value="EL DURAZNAL">EL DURAZNAL</option>';
+            nombre_options_str  += '<option value="EL ESFUERZO">EL ESFUERZO</option>';
+            nombre_options_str  += '<option value="EL LABRADOR">EL LABRADOR</option>';
+            nombre_options_str  += '<option value="EL MARISCAL">EL MARISCAL</option>';
+            nombre_options_str  += '<option value="EL MIRADOR DE LOS ANDES">EL MIRADOR DE LOS ANDES</option>';
+            nombre_options_str  += '<option value="EL MOLINO">EL MOLINO</option>';
+            nombre_options_str  += '<option value="EL NOCEDAL">EL NOCEDAL</option>';
+            nombre_options_str  += '<option value="EL PANGUE">EL PANGUE</option>';
+            nombre_options_str  += '<option value="EL PERAL">EL PERAL</option>';
+            nombre_options_str  += '<option value="EL PEÑON">EL PEÑON</option>';
+            nombre_options_str  += '<option value="EL PEÑON DE MACUL">EL PEÑON DE MACUL</option>';
+            nombre_options_str  += '<option value="EL PORVENIR">EL PORVENIR</option>';
+            nombre_options_str  += '<option value="EL QUISCO">EL QUISCO</option>';
+            nombre_options_str  += '<option value="EL RACO">EL RACO</option>';
+            nombre_options_str  += '<option value="EL REFUGIO">EL REFUGIO</option>';
+            nombre_options_str  += '<option value="EL TRANQUE">EL TRANQUE</option>';
+            nombre_options_str  += '<option value="ELECTRICOOP">ELECTRICOOP</option>';
+            nombre_options_str  += '<option value="EMPART">EMPART</option>';
+            nombre_options_str  += '<option value="ESPERANZA">ESPERANZA</option>';
+            nombre_options_str  += '<option value="ESTACIONES FERROVIARIAS">ESTACIONES FERROVIARIAS</option>';
+            nombre_options_str  += '<option value="FALDEOS DE LA VIÑA">FALDEOS DE LA VIÑA</option>';
+            nombre_options_str  += '<option value="FERIA PERSA">FERIA PERSA</option>';
+            nombre_options_str  += '<option value="FRANCIA">FRANCIA</option>';
+            nombre_options_str  += '<option value="FRANCISCO COLOANE">FRANCISCO COLOANE</option>';
+            nombre_options_str  += '<option value="FRAY CAMILO HENRIQUEZ">FRAY CAMILO HENRIQUEZ</option>';
+            nombre_options_str  += '<option value="GABRIELA">GABRIELA</option>';
+            nombre_options_str  += '<option value="GABRIELA MISTRAL">GABRIELA MISTRAL</option>';
+            nombre_options_str  += '<option value="HACIENDA EL PEÑON">HACIENDA EL PEÑON</option>';
+            nombre_options_str  += '<option value="HACIENDA LOS CONQUISTADORES">HACIENDA LOS CONQUISTADORES</option>';
+            nombre_options_str  += '<option value="HERMANOS CARRERA">HERMANOS CARRERA</option>';
+            nombre_options_str  += '<option value="HERMANOS DE LA SALLE">HERMANOS DE LA SALLE</option>';
+            nombre_options_str  += '<option value="HERNAN CORTES">HERNAN CORTES</option>';
+            nombre_options_str  += '<option value="HIJUELA SAN GUILLERMO">HIJUELA SAN GUILLERMO</option>';
+            nombre_options_str  += '<option value="HUERTOS FAMILIARES LAS ROSAS">HUERTOS FAMILIARES LAS ROSAS</option>';
+            nombre_options_str  += '<option value="HUMBERTO DIAZ CASANUEVA">HUMBERTO DIAZ CASANUEVA</option>';
+            nombre_options_str  += '<option value="INDEPENDENCIA">INDEPENDENCIA</option>';
+            nombre_options_str  += '<option value="INDEPENDENCIA TOCORNAL">INDEPENDENCIA TOCORNAL</option>';
+            nombre_options_str  += '<option value="INES UNDURRAGA">INES UNDURRAGA</option>';
+            nombre_options_str  += '<option value="INGENIERO DANIEL RISOPATRON">INGENIERO DANIEL RISOPATRON</option>';
+            nombre_options_str  += '<option value="INGENIERO SERGIO MAY COLVIN">INGENIERO SERGIO MAY COLVIN</option>';
+            nombre_options_str  += '<option value="JAHUEL SUR">JAHUEL SUR</option>';
+            nombre_options_str  += '<option value="JARDIN ORIENTE">JARDIN ORIENTE</option>';
+            nombre_options_str  += '<option value="JARDIN ORIENTE III">JARDIN ORIENTE III</option>';
+            nombre_options_str  += '<option value="JARDINES DE VICUÑA">JARDINES DE VICUÑA</option>';
+            nombre_options_str  += '<option value="JARDINES DEL VALLE">JARDINES DEL VALLE</option>';
+            nombre_options_str  += '<option value="JARDINES EL RODEO">JARDINES EL RODEO</option>';
+            nombre_options_str  += '<option value="JARDINES SAN CARLOS">JARDINES SAN CARLOS</option>';
+            nombre_options_str  += '<option value="JARDINES VIZCACHAS">JARDINES VIZCACHAS</option>';
+            nombre_options_str  += '<option value="JESUS DE NAZARET">JESUS DE NAZARET</option>';
+            nombre_options_str  += '<option value="JORGE ALESSANDRI (EX GRANJAS ANTIGUAS)">JORGE ALESSANDRI (EX GRANJAS ANTIGUAS)</option>';
+            nombre_options_str  += '<option value="JUANITA ORIENTE">JUANITA ORIENTE</option>';
+            nombre_options_str  += '<option value="LA ARBOLEDA">LA ARBOLEDA</option>';
+            nombre_options_str  += '<option value="LA CAPILLA">LA CAPILLA</option>';
+            nombre_options_str  += '<option value="LA GRANJA">LA GRANJA</option>';
+            nombre_options_str  += '<option value="LA NOGALADA">LA NOGALADA</option>';
+            nombre_options_str  += '<option value="LA OBRA">LA OBRA</option>';
+            nombre_options_str  += '<option value="LA PLATINA">LA PLATINA</option>';
+            nombre_options_str  += '<option value="LA PRIMAVERA">LA PRIMAVERA</option>';
+            nombre_options_str  += '<option value="LA SERENA-SAN FRANCISCO">LA SERENA-SAN FRANCISCO</option>';
+            nombre_options_str  += '<option value="LA VIÑITA">LA VIÑITA</option>';
+            nombre_options_str  += '<option value="LAS ACHIRAS">LAS ACHIRAS</option>';
+            nombre_options_str  += '<option value="LAS AZALEAS">LAS AZALEAS</option>';
+            nombre_options_str  += '<option value="LAS BRISAS">LAS BRISAS</option>';
+            nombre_options_str  += '<option value="LAS CALETAS">LAS CALETAS</option>';
+            nombre_options_str  += '<option value="LAS CAMELIAS">LAS CAMELIAS</option>';
+            nombre_options_str  += '<option value="LAS CASAS DE SAN GUILLERMO">LAS CASAS DE SAN GUILLERMO</option>';
+            nombre_options_str  += '<option value="LAS CAVAS">LAS CAVAS</option>';
+            nombre_options_str  += '<option value="LAS CLARAS PARQUE RESIDENCIAL">LAS CLARAS PARQUE RESIDENCIAL</option>';
+            nombre_options_str  += '<option value="LAS CLARISAS">LAS CLARISAS</option>';
+            nombre_options_str  += '<option value="LAS NIEVES">LAS NIEVES</option>';
+            nombre_options_str  += '<option value="LAS PATAGUAS">LAS PATAGUAS</option>';
+            nombre_options_str  += '<option value="LAS PERDICES">LAS PERDICES</option>';
+            nombre_options_str  += '<option value="LAS ROSAS">LAS ROSAS</option>';
+            nombre_options_str  += '<option value="LAS ROSAS DE GABRIELA">LAS ROSAS DE GABRIELA</option>';
+            nombre_options_str  += '<option value="LAS ROSAS DE GABRIELA 2">LAS ROSAS DE GABRIELA 2</option>';
+            nombre_options_str  += '<option value="LAS ROSAS DE GABRIELA 3">LAS ROSAS DE GABRIELA 3</option>';
+            nombre_options_str  += '<option value="LAS ROSAS DE GABRIELA 4">LAS ROSAS DE GABRIELA 4</option>';
+            nombre_options_str  += '<option value="LAS TERRAZAS DE PUENTE ALTO">LAS TERRAZAS DE PUENTE ALTO</option>';
+            nombre_options_str  += '<option value="LAS TORRES">LAS TORRES</option>';
+            nombre_options_str  += '<option value="LIBERTADOR BERNARDO O&apos;HIGGINS">LIBERTADOR BERNARDO O&apos;HIGGINS</option>';
+            nombre_options_str  += '<option value="LLAVERIAS">LLAVERIAS</option>';
+            nombre_options_str  += '<option value="LO BASCUÑAN">LO BASCUÑAN</option>';
+            nombre_options_str  += '<option value="LO PLANELLA (VIÑA SANTA ROSA DEL PERAL)">LO PLANELLA (VIÑA SANTA ROSA DEL PERAL)</option>';
+            nombre_options_str  += '<option value="LO TOCORNAL">LO TOCORNAL</option>';
+            nombre_options_str  += '<option value="LOMA ORIENTE">LOMA ORIENTE</option>';
+            nombre_options_str  += '<option value="LOMAS DE EYZAGUIRRE">LOMAS DE EYZAGUIRRE</option>';
+            nombre_options_str  += '<option value="LOMAS DE TOBALABA">LOMAS DE TOBALABA</option>';
+            nombre_options_str  += '<option value="LOMAS DEL MAIPO">LOMAS DEL MAIPO</option>';
+            nombre_options_str  += '<option value="LOS ACACIOS">LOS ACACIOS</option>';
+            nombre_options_str  += '<option value="LOS ALAMOS">LOS ALAMOS</option>';
+            nombre_options_str  += '<option value="LOS ALMENDROS">LOS ALMENDROS</option>';
+            nombre_options_str  += '<option value="LOS ALMENDROS 3">LOS ALMENDROS 3</option>';
+            nombre_options_str  += '<option value="LOS ALMENDROS-GABRIELA">LOS ALMENDROS-GABRIELA</option>';
+            nombre_options_str  += '<option value="LOS ANDES DEL SUR">LOS ANDES DEL SUR</option>';
+            nombre_options_str  += '<option value="LOS APÓSTOLES I">LOS APÓSTOLES I</option>';
+            nombre_options_str  += '<option value="LOS APÓSTOLES II">LOS APÓSTOLES II</option>';
+            nombre_options_str  += '<option value="LOS APÓSTOLES III">LOS APÓSTOLES III</option>';
+            nombre_options_str  += '<option value="LOS AROMOS (EX 29 DE SEPTIEMBRE)">LOS AROMOS (EX 29 DE SEPTIEMBRE)</option>';
+            nombre_options_str  += '<option value="LOS CANALES (EX GABRIELA)">LOS CANALES (EX GABRIELA)</option>';
+            nombre_options_str  += '<option value="LOS CANALISTAS DEL MAIPO">LOS CANALISTAS DEL MAIPO</option>';
+            nombre_options_str  += '<option value="LOS CASTAÑOS">LOS CASTAÑOS</option>';
+            nombre_options_str  += '<option value="LOS CASTAÑOS 1">LOS CASTAÑOS 1</option>';
+            nombre_options_str  += '<option value="LOS CASTAÑOS DE LAS VIZCACHAS">LOS CASTAÑOS DE LAS VIZCACHAS</option>';
+            nombre_options_str  += '<option value="LOS CASTAÑOS DE LAS VIZCACHAS II">LOS CASTAÑOS DE LAS VIZCACHAS II</option>';
+            nombre_options_str  += '<option value="LOS CIRUELOS">LOS CIRUELOS</option>';
+            nombre_options_str  += '<option value="LOS COIGUES">LOS COIGUES</option>';
+            nombre_options_str  += '<option value="LOS CONQUISTADORES">LOS CONQUISTADORES</option>';
+            nombre_options_str  += '<option value="LOS CONQUISTADORES (VICENTE HUIDOBRO)">LOS CONQUISTADORES (VICENTE HUIDOBRO)</option>';
+            nombre_options_str  += '<option value="LOS CONQUISTADORES 8">LOS CONQUISTADORES 8</option>';
+            nombre_options_str  += '<option value="LOS EVANGELISTAS">LOS EVANGELISTAS</option>';
+            nombre_options_str  += '<option value="LOS JARDINES DE PUENTE ALTO">LOS JARDINES DE PUENTE ALTO</option>';
+            nombre_options_str  += '<option value="LOS JASPES">LOS JASPES</option>';
+            nombre_options_str  += '<option value="LOS JAZMINES">LOS JAZMINES</option>';
+            nombre_options_str  += '<option value="LOS LAGOS">LOS LAGOS</option>';
+            nombre_options_str  += '<option value="LOS LIBERTADORES">LOS LIBERTADORES</option>';
+            nombre_options_str  += '<option value="LOS LIMONEROS">LOS LIMONEROS</option>';
+            nombre_options_str  += '<option value="LOS MAITENES DE MIGUEL ANGEL">LOS MAITENES DE MIGUEL ANGEL</option>';
+            nombre_options_str  += '<option value="LOS MAQUIS">LOS MAQUIS</option>';
+            nombre_options_str  += '<option value="LOS NARANJOS">LOS NARANJOS</option>';
+            nombre_options_str  += '<option value="LOS NOGALES">LOS NOGALES</option>';
+            nombre_options_str  += '<option value="LOS NOGALES LOTE PB NUEVOS FALDEOS DE LA VIÑA">LOS NOGALES LOTE PB NUEVOS FALDEOS DE LA VIÑA</option>';
+            nombre_options_str  += '<option value="LOS OLIVOS">LOS OLIVOS</option>';
+            nombre_options_str  += '<option value="LOS OLIVOS DE QUITALMAHUE">LOS OLIVOS DE QUITALMAHUE</option>';
+            nombre_options_str  += '<option value="LOS OTOÑALES DE PUENTE ALTO">LOS OTOÑALES DE PUENTE ALTO</option>';
+            nombre_options_str  += '<option value="LOS PARQUES DE VICUÑA MACKENNA">LOS PARQUES DE VICUÑA MACKENNA</option>';
+            nombre_options_str  += '<option value="LOS PATRIOTAS">LOS PATRIOTAS</option>';
+            nombre_options_str  += '<option value="LOS PENSAMIENTOS">LOS PENSAMIENTOS</option>';
+            nombre_options_str  += '<option value="LOS PINTORES">LOS PINTORES</option>';
+            nombre_options_str  += '<option value="LOS PORTALES DE SAN CARLOS">LOS PORTALES DE SAN CARLOS</option>';
+            nombre_options_str  += '<option value="LOS PORTALES DE SAN FRANCISCO">LOS PORTALES DE SAN FRANCISCO</option>';
+            nombre_options_str  += '<option value="LOS PRADOS I">LOS PRADOS I</option>';
+            nombre_options_str  += '<option value="LOS PRADOS II">LOS PRADOS II</option>';
+            nombre_options_str  += '<option value="LOS PRADOS III">LOS PRADOS III</option>';
+            nombre_options_str  += '<option value="LOS PRADOS IV">LOS PRADOS IV</option>';
+            nombre_options_str  += '<option value="LOS PRODUCTORES">LOS PRODUCTORES</option>';
+            nombre_options_str  += '<option value="LOS ROBLES DE PUENTE ALTO BARRIO LOS AROMOS">LOS ROBLES DE PUENTE ALTO BARRIO LOS AROMOS</option>';
+            nombre_options_str  += '<option value="LOS SAUCES">LOS SAUCES</option>';
+            nombre_options_str  += '<option value="LOS SILOS">LOS SILOS</option>';
+            nombre_options_str  += '<option value="LOTE 1A">LOTE 1A</option>';
+            nombre_options_str  += '<option value="LOTE 6B-1">LOTE 6B-1</option>';
+            nombre_options_str  += '<option value="LOTE M4 HACIENDA EL PEÑON">LOTE M4 HACIENDA EL PEÑON</option>';
+            nombre_options_str  += '<option value="LUIS MATTE LARRAIN">LUIS MATTE LARRAIN</option>';
+            nombre_options_str  += '<option value="MAIPO">MAIPO</option>';
+            nombre_options_str  += '<option value="MALL PLAZA PUENTE">MALL PLAZA PUENTE</option>';
+            nombre_options_str  += '<option value="MAMIÑA">MAMIÑA</option>';
+            nombre_options_str  += '<option value="MANUEL PLAZA">MANUEL PLAZA</option>';
+            nombre_options_str  += '<option value="MANUEL RODRIGUEZ (EX 29 DE SEPTIEMBRE)">MANUEL RODRIGUEZ (EX 29 DE SEPTIEMBRE)</option>';
+            nombre_options_str  += '<option value="MARCELA PAZ">MARCELA PAZ</option>';
+            nombre_options_str  += '<option value="MARIANO LATORRE">MARIANO LATORRE</option>';
+            nombre_options_str  += '<option value="MARTA BRUNET">MARTA BRUNET</option>';
+            nombre_options_str  += '<option value="MIGUEL ANGEL">MIGUEL ANGEL</option>';
+            nombre_options_str  += '<option value="MIGUEL ANGEL II">MIGUEL ANGEL II</option>';
+            nombre_options_str  += '<option value="MILLACURA">MILLACURA</option>';
+            nombre_options_str  += '<option value="MILLANTU">MILLANTU</option>';
+            nombre_options_str  += '<option value="MIRADOR DE LA VIÑA PLANELLA">MIRADOR DE LA VIÑA PLANELLA</option>';
+            nombre_options_str  += '<option value="MIRADOR DEL MAIPO">MIRADOR DEL MAIPO</option>';
+            nombre_options_str  += '<option value="MIRADOR VIZCACHAS">MIRADOR VIZCACHAS</option>';
+            nombre_options_str  += '<option value="MISTRAL">MISTRAL</option>';
+            nombre_options_str  += '<option value="MONSEÑOR ALVEAR">MONSEÑOR ALVEAR</option>';
+            nombre_options_str  += '<option value="MONTE GRANDE">MONTE GRANDE</option>';
+            nombre_options_str  += '<option value="MONTE VERDE">MONTE VERDE</option>';
+            nombre_options_str  += '<option value="MONTEPATRIA">MONTEPATRIA</option>';
+            nombre_options_str  += '<option value="MOURGUEZ">MOURGUEZ</option>';
+            nombre_options_str  += '<option value="NEVADOS DEL MAIPO">NEVADOS DEL MAIPO</option>';
+            nombre_options_str  += '<option value="NEWEN">NEWEN</option>';
+            nombre_options_str  += '<option value="NOCEDAL">NOCEDAL</option>';
+            nombre_options_str  += '<option value="NONATO COO">NONATO COO</option>';
+            nombre_options_str  += '<option value="NONATO COO II">NONATO COO II</option>';
+            nombre_options_str  += '<option value="NUEVA FRANCISCO COLOANE 1">NUEVA FRANCISCO COLOANE 1</option>';
+            nombre_options_str  += '<option value="NUEVA FRANCISCO COLOANE 2">NUEVA FRANCISCO COLOANE 2</option>';
+            nombre_options_str  += '<option value="NUEVO AMANECER">NUEVO AMANECER</option>';
+            nombre_options_str  += '<option value="NUEVO FRANCISCO COLOANE III">NUEVO FRANCISCO COLOANE III</option>';
+            nombre_options_str  += '<option value="NUEVO FRANCISCO COLOANE IV">NUEVO FRANCISCO COLOANE IV</option>';
+            nombre_options_str  += '<option value="NUEVO MUNDO">NUEVO MUNDO</option>';
+            nombre_options_str  += '<option value="NUEVO PARQUE SAN FRANCISCO">NUEVO PARQUE SAN FRANCISCO</option>';
+            nombre_options_str  += '<option value="NUEVO PARQUE SAN FRENCISCO">NUEVO PARQUE SAN FRENCISCO</option>';
+            nombre_options_str  += '<option value="NUEVO SIGLO">NUEVO SIGLO</option>';
+            nombre_options_str  += '<option value="NUEVOS FALDEOS DE LA VIÑA">NUEVOS FALDEOS DE LA VIÑA</option>';
+            nombre_options_str  += '<option value="OBREROS EL VOLCAN">OBREROS EL VOLCAN</option>';
+            nombre_options_str  += '<option value="OBREROS MUNICIPALES DE PROVIDENCIA">OBREROS MUNICIPALES DE PROVIDENCIA</option>';
+            nombre_options_str  += '<option value="OSCAR BONILLA">OSCAR BONILLA</option>';
+            nombre_options_str  += '<option value="PACIFICO SUR">PACIFICO SUR</option>';
+            nombre_options_str  += '<option value="PADRE ALBERTO HURTADO">PADRE ALBERTO HURTADO</option>';
+            nombre_options_str  += '<option value="PADRE ALVARO LAVIN">PADRE ALVARO LAVIN</option>';
+            nombre_options_str  += '<option value="PAPELERA OBRERA">PAPELERA OBRERA</option>';
+            nombre_options_str  += '<option value="PARAISO VERDE">PARAISO VERDE</option>';
+            nombre_options_str  += '<option value="PARQUE ALCANTARA">PARQUE ALCANTARA</option>';
+            nombre_options_str  += '<option value="PARQUE ALTO">PARQUE ALTO</option>';
+            nombre_options_str  += '<option value="PARQUE ALTO.">PARQUE ALTO.</option>';
+            nombre_options_str  += '<option value="PARQUE CENTRAL BRISAS DEL MAIPO">PARQUE CENTRAL BRISAS DEL MAIPO</option>';
+            nombre_options_str  += '<option value="PARQUE CORDILLERA">PARQUE CORDILLERA</option>';
+            nombre_options_str  += '<option value="PARQUE CORDILLERA I ORIENTE - NUEVO PARQUE SAN FR*">PARQUE CORDILLERA I ORIENTE - NUEVO PARQUE SAN FR*</option>';
+            nombre_options_str  += '<option value="PARQUE CORDILLERA I PONIENTE">PARQUE CORDILLERA I PONIENTE</option>';
+            nombre_options_str  += '<option value="PARQUE DE LOS RIOS">PARQUE DE LOS RIOS</option>';
+            nombre_options_str  += '<option value="PARQUE DEL SOL">PARQUE DEL SOL</option>';
+            nombre_options_str  += '<option value="PARQUE GABRIELA">PARQUE GABRIELA</option>';
+            nombre_options_str  += '<option value="PARQUE LAS AMERICAS">PARQUE LAS AMERICAS</option>';
+            nombre_options_str  += '<option value="PARQUE LAS AMERICAS (EX PARQUE ORIENTE)">PARQUE LAS AMERICAS (EX PARQUE ORIENTE)</option>';
+            nombre_options_str  += '<option value="PARQUE MIGUEL ANGEL">PARQUE MIGUEL ANGEL</option>';
+            nombre_options_str  += '<option value="PARQUE QUEULAT">PARQUE QUEULAT</option>';
+            nombre_options_str  += '<option value="PARQUE QUILLAY">PARQUE QUILLAY</option>';
+            nombre_options_str  += '<option value="PARQUE RESIDENCIAL COSTANERA">PARQUE RESIDENCIAL COSTANERA</option>';
+            nombre_options_str  += '<option value="PARQUE RESIDENCIAL INDEPENDENCIA">PARQUE RESIDENCIAL INDEPENDENCIA</option>';
+            nombre_options_str  += '<option value="PARQUE RESIDENCIAL MONTE ANDINO">PARQUE RESIDENCIAL MONTE ANDINO</option>';
+            nombre_options_str  += '<option value="PARQUE RESIDENCIAL NUEVA PUENTE ALTO">PARQUE RESIDENCIAL NUEVA PUENTE ALTO</option>';
+            nombre_options_str  += '<option value="PARQUE SAN CARLOS">PARQUE SAN CARLOS</option>';
+            nombre_options_str  += '<option value="PARQUE SAN FRANCISCO">PARQUE SAN FRANCISCO</option>';
+            nombre_options_str  += '<option value="PARQUE SAN FRANCISCO IV">PARQUE SAN FRANCISCO IV</option>';
+            nombre_options_str  += '<option value="PARQUE SAN FRANCISCO V">PARQUE SAN FRANCISCO V</option>';
+            nombre_options_str  += '<option value="PARQUE SAN FRANCISCO VI">PARQUE SAN FRANCISCO VI</option>';
+            nombre_options_str  += '<option value="PASEO MANUEL RODRIGUEZ">PASEO MANUEL RODRIGUEZ</option>';
+            nombre_options_str  += '<option value="PASO ALTO">PASO ALTO</option>';
+            nombre_options_str  += '<option value="PEDRO AGUIRRE CERDA">PEDRO AGUIRRE CERDA</option>';
+            nombre_options_str  += '<option value="PEDRO LIRA RENCORET">PEDRO LIRA RENCORET</option>';
+            nombre_options_str  += '<option value="PIE ANDINO">PIE ANDINO</option>';
+            nombre_options_str  += '<option value="PINTORES DE LA INDEPENDENCIA">PINTORES DE LA INDEPENDENCIA</option>';
+            nombre_options_str  += '<option value="PIRCAS DEL MAIPO">PIRCAS DEL MAIPO</option>';
+            nombre_options_str  += '<option value="PLAZA MAGNA">PLAZA MAGNA</option>';
+            nombre_options_str  += '<option value="PLAZA MIGUEL ANGEL">PLAZA MIGUEL ANGEL</option>';
+            nombre_options_str  += '<option value="PLAZA VIVA">PLAZA VIVA</option>';
+            nombre_options_str  += '<option value="PLAZUELA LOS TOROS">PLAZUELA LOS TOROS</option>';
+            nombre_options_str  += '<option value="POBLACION QUITALMAHUE">POBLACION QUITALMAHUE</option>';
+            nombre_options_str  += '<option value="POBLACIÓN OBRERA EUGENIO MATTE">POBLACIÓN OBRERA EUGENIO MATTE</option>';
+            nombre_options_str  += '<option value="PORTADA DEL SUR">PORTADA DEL SUR</option>';
+            nombre_options_str  += '<option value="PORTAL ANDINO">PORTAL ANDINO</option>';
+            nombre_options_str  += '<option value="PORTAL DEL PARQUE">PORTAL DEL PARQUE</option>';
+            nombre_options_str  += '<option value="PORTAL DEL VALLE">PORTAL DEL VALLE</option>';
+            nombre_options_str  += '<option value="PORTEZUELO DE TOBALABA">PORTEZUELO DE TOBALABA</option>';
+            nombre_options_str  += '<option value="PORTEZUELO DE TOBALABA 3">PORTEZUELO DE TOBALABA 3</option>';
+            nombre_options_str  += '<option value="PORTEZUELO DE TOBALABA ORIENTE">PORTEZUELO DE TOBALABA ORIENTE</option>';
+            nombre_options_str  += '<option value="PROFESOR JUAN GOMEZ MILLAS">PROFESOR JUAN GOMEZ MILLAS</option>';
+            nombre_options_str  += '<option value="RAIMAPU">RAIMAPU</option>';
+            nombre_options_str  += '<option value="REAL AUDIENCIA">REAL AUDIENCIA</option>';
+            nombre_options_str  += '<option value="RENACIMIENTO">RENACIMIENTO</option>';
+            nombre_options_str  += '<option value="REY BALDUINO">REY BALDUINO</option>';
+            nombre_options_str  += '<option value="RIO COLORADO - PARQUE DE LOS RIOS">RIO COLORADO - PARQUE DE LOS RIOS</option>';
+            nombre_options_str  += '<option value="SAN ALBERTO DE CASAS VIEJAS">SAN ALBERTO DE CASAS VIEJAS</option>';
+            nombre_options_str  += '<option value="SAN CARLOS">SAN CARLOS</option>';
+            nombre_options_str  += '<option value="SAN CARLOS DE VICUÑA MACKENNA">SAN CARLOS DE VICUÑA MACKENNA</option>';
+            nombre_options_str  += '<option value="SAN FRANCISCO">SAN FRANCISCO</option>';
+            nombre_options_str  += '<option value="SAN GERONIMO">SAN GERONIMO</option>';
+            nombre_options_str  += '<option value="SAN JOSE DE LAS CLARAS">SAN JOSE DE LAS CLARAS</option>';
+            nombre_options_str  += '<option value="SAN JUAN DE PIRCAS">SAN JUAN DE PIRCAS</option>';
+            nombre_options_str  += '<option value="SAN LAZARO">SAN LAZARO</option>';
+            nombre_options_str  += '<option value="SAN PATRICIO">SAN PATRICIO</option>';
+            nombre_options_str  += '<option value="SAN PEDRO">SAN PEDRO</option>';
+            nombre_options_str  += '<option value="SAN PEDRO Y SAN PABLO">SAN PEDRO Y SAN PABLO</option>';
+            nombre_options_str  += '<option value="SANTA ELVIRA">SANTA ELVIRA</option>';
+            nombre_options_str  += '<option value="SANTA FE">SANTA FE</option>';
+            nombre_options_str  += '<option value="SANTA FELICIA">SANTA FELICIA</option>';
+            nombre_options_str  += '<option value="SANTA GABRIELA">SANTA GABRIELA</option>';
+            nombre_options_str  += '<option value="SANTA JOSEFINA">SANTA JOSEFINA</option>';
+            nombre_options_str  += '<option value="SANTA LUZ (LO PLANELLA)">SANTA LUZ (LO PLANELLA)</option>';
+            nombre_options_str  += '<option value="SANTA MARIA DEL PEÑON">SANTA MARIA DEL PEÑON</option>';
+            nombre_options_str  += '<option value="SANTA MARIA MAGDALENA">SANTA MARIA MAGDALENA</option>';
+            nombre_options_str  += '<option value="SANTA MARTA">SANTA MARTA</option>';
+            nombre_options_str  += '<option value="SANTA MATILDE ORIENTE">SANTA MATILDE ORIENTE</option>';
+            nombre_options_str  += '<option value="SANTA MATILDE PONIENTE">SANTA MATILDE PONIENTE</option>';
+            nombre_options_str  += '<option value="SANTA MONICA">SANTA MONICA</option>';
+            nombre_options_str  += '<option value="SARGENTO MENADIER">SARGENTO MENADIER</option>';
+            nombre_options_str  += '<option value="SECTOR CENTRO">SECTOR CENTRO</option>';
+            nombre_options_str  += '<option value="SOR TERESA">SOR TERESA</option>';
+            nombre_options_str  += '<option value="SU CASA III">SU CASA III</option>';
+            nombre_options_str  += '<option value="SU CASA LOTE A">SU CASA LOTE A</option>';
+            nombre_options_str  += '<option value="TEMPUS">TEMPUS</option>';
+            nombre_options_str  += '<option value="TENIENTE MERINO">TENIENTE MERINO</option>';
+            nombre_options_str  += '<option value="TERESA DE CALCUTA">TERESA DE CALCUTA</option>';
+            nombre_options_str  += '<option value="TERRANDINA">TERRANDINA</option>';
+            nombre_options_str  += '<option value="TERRANOVA">TERRANOVA</option>';
+            nombre_options_str  += '<option value="TORREONES NOGALADA">TORREONES NOGALADA</option>';
+            nombre_options_str  += '<option value="VALLE DEL ELQUI">VALLE DEL ELQUI</option>';
+            nombre_options_str  += '<option value="VALLE DEL MAIPO">VALLE DEL MAIPO</option>';
+            nombre_options_str  += '<option value="VALLE VERDE">VALLE VERDE</option>';
+            nombre_options_str  += '<option value="VERTIENTES">VERTIENTES</option>';
+            nombre_options_str  += '<option value="VICENTE PEREZ ROSALES">VICENTE PEREZ ROSALES</option>';
+            nombre_options_str  += '<option value="VILLA BELGICA">VILLA BELGICA</option>';
+            nombre_options_str  += '<option value="VILLA BERNARDO LEIGHTON">VILLA BERNARDO LEIGHTON</option>';
+            nombre_options_str  += '<option value="VILLA CRETA">VILLA CRETA</option>';
+            nombre_options_str  += '<option value="VILLA DEL COMERCIO">VILLA DEL COMERCIO</option>';
+            nombre_options_str  += '<option value="VILLA EL ARRAYAN DE PUENTE ALTO">VILLA EL ARRAYAN DE PUENTE ALTO</option>';
+            nombre_options_str  += '<option value="VILLA EL ARRAYAN II">VILLA EL ARRAYAN II</option>';
+            nombre_options_str  += '<option value="VILLA ENTRE RIOS">VILLA ENTRE RIOS</option>';
+            nombre_options_str  += '<option value="VILLA ESPAÑA">VILLA ESPAÑA</option>';
+            nombre_options_str  += '<option value="VILLA EUROPA">VILLA EUROPA</option>';
+            nombre_options_str  += '<option value="VILLA FUTURO DE MACUL">VILLA FUTURO DE MACUL</option>';
+            nombre_options_str  += '<option value="VILLA GENERAL BERNALES">VILLA GENERAL BERNALES</option>';
+            nombre_options_str  += '<option value="VILLA HORIZONTE">VILLA HORIZONTE</option>';
+            nombre_options_str  += '<option value="VILLA LA FORESTA DE VICUÑA MACKENNA">VILLA LA FORESTA DE VICUÑA MACKENNA</option>';
+            nombre_options_str  += '<option value="VILLA LA FORESTA DE VICUÑA MACKENNA II">VILLA LA FORESTA DE VICUÑA MACKENNA II</option>';
+            nombre_options_str  += '<option value="VILLA LA FORESTA DE VICUÑA MACKENNA III">VILLA LA FORESTA DE VICUÑA MACKENNA III</option>';
+            nombre_options_str  += '<option value="VILLA LA FORESTA DE VICUÑA MACKENNA IV">VILLA LA FORESTA DE VICUÑA MACKENNA IV</option>';
+            nombre_options_str  += '<option value="VILLA LA FRONTERA">VILLA LA FRONTERA</option>';
+            nombre_options_str  += '<option value="VILLA LA SALUD">VILLA LA SALUD</option>';
+            nombre_options_str  += '<option value="VILLA LAS ACACIAS">VILLA LAS ACACIAS</option>';
+            nombre_options_str  += '<option value="VILLA LAS CUMBRES">VILLA LAS CUMBRES</option>';
+            nombre_options_str  += '<option value="VILLA LOS ALAMOS">VILLA LOS ALAMOS</option>';
+            nombre_options_str  += '<option value="VILLA LOS INDUSTRIALES">VILLA LOS INDUSTRIALES</option>';
+            nombre_options_str  += '<option value="VILLA LOS PENSAMIENTOS">VILLA LOS PENSAMIENTOS</option>';
+            nombre_options_str  += '<option value="VILLA LOS PRODUCTORES">VILLA LOS PRODUCTORES</option>';
+            nombre_options_str  += '<option value="VILLA LUCILA">VILLA LUCILA</option>';
+            nombre_options_str  += '<option value="VILLA MAMIÑA">VILLA MAMIÑA</option>';
+            nombre_options_str  += '<option value="VILLA PUENTE ALTO">VILLA PUENTE ALTO</option>';
+            nombre_options_str  += '<option value="VILLA REAL">VILLA REAL</option>';
+            nombre_options_str  += '<option value="VILLA SAN FRANCISCO DE ASIS">VILLA SAN FRANCISCO DE ASIS</option>';
+            nombre_options_str  += '<option value="VILLA SAN MIGUEL">VILLA SAN MIGUEL</option>';
+            nombre_options_str  += '<option value="VILLA SANTA CATALINA">VILLA SANTA CATALINA</option>';
+            nombre_options_str  += '<option value="VILLA SANTA ESTER">VILLA SANTA ESTER</option>';
+            nombre_options_str  += '<option value="VILLA VENEZUELA">VILLA VENEZUELA</option>';
+            nombre_options_str  += '<option value="VILLAS LOS RIOS (EX EL MOLINO)">VILLAS LOS RIOS (EX EL MOLINO)</option>';
+            nombre_options_str  += '<option value="VISTA DEL MAIPO I">VISTA DEL MAIPO I</option>';
+            nombre_options_str  += '<option value="VISTA DEL MAIPO II">VISTA DEL MAIPO II</option>';
+            nombre_options_str  += '<option value="VISTA HERMOSA">VISTA HERMOSA</option>';
+            nombre_options_str  += '<option value="VIÑAS UNIDAS">VIÑAS UNIDAS</option>';
+            nombre_options_str  += '<option value="VOLCAN SAN JOSE">VOLCAN SAN JOSE</option>';
+            nombre_options_str  += '<option value="VOLCAN SAN JOSE II Y III">VOLCAN SAN JOSE II Y III</option>';
+            nombre_options_str  += '<option value="lOS ANDES">lOS ANDES</option>';
+            sel_nombre.innerHTML = nombre_options_str;
+            div_nombre.appendChild(sel_nombre);
+            var lab_nombre = document.createElement('div');
+            lab_nombre.innerHTML = 'nombre';
+            lab_nombre.className = 'filterlabel';
+            div_nombre.appendChild(lab_nombre);
+            var reset_nombre = document.createElement('div');
+            reset_nombre.innerHTML = 'clear filter';
+            reset_nombre.className = 'filterlabel';
+            reset_nombre.onclick = function() {
+                var options = document.getElementById("sel_nombre").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_nombre.appendChild(reset_nombre);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_Villa_Pobl = document.createElement('div');
+            div_Villa_Pobl.id = "div_Villa_Pobl";
+            div_Villa_Pobl.className= "filterselect";
+            document.getElementById("menu").appendChild(div_Villa_Pobl);
+            sel_Villa_Pobl = document.createElement('select');
+            sel_Villa_Pobl.multiple = true;
+            sel_Villa_Pobl.size = 10;
+            sel_Villa_Pobl.id = "sel_Villa_Pobl";
+            var Villa_Pobl_options_str = "<option value='' unselected></option>";
+            sel_Villa_Pobl.onchange = function(){filterFunc()};
+            Villa_Pobl_options_str  += '<option value="NULL">NULL</option>';
+            Villa_Pobl_options_str  += '<option value="------">------</option>';
+            Villa_Pobl_options_str  += '<option value="12 DE MAYO">12 DE MAYO</option>';
+            Villa_Pobl_options_str  += '<option value="ALFREDO GUZMAN STEWART">ALFREDO GUZMAN STEWART</option>';
+            Villa_Pobl_options_str  += '<option value="ALTO LO PLANELLA">ALTO LO PLANELLA</option>';
+            Villa_Pobl_options_str  += '<option value="ALTOS DEL MAIPO">ALTOS DEL MAIPO</option>';
+            Villa_Pobl_options_str  += '<option value="ALTOS DEL RACO">ALTOS DEL RACO</option>';
+            Villa_Pobl_options_str  += '<option value="ALTOS DEL RACO 2">ALTOS DEL RACO 2</option>';
+            Villa_Pobl_options_str  += '<option value="ALTOS DEL RACO 5">ALTOS DEL RACO 5</option>';
+            Villa_Pobl_options_str  += '<option value="ALTOS DEL RACO 6">ALTOS DEL RACO 6</option>';
+            Villa_Pobl_options_str  += '<option value="ALTOS DEL RACO 7">ALTOS DEL RACO 7</option>';
+            Villa_Pobl_options_str  += '<option value="ARAUCANIA">ARAUCANIA</option>';
+            Villa_Pobl_options_str  += '<option value="ARBOLEDA DE GABRIELA">ARBOLEDA DE GABRIELA</option>';
+            Villa_Pobl_options_str  += '<option value="ARCO IRIS DEL SUR">ARCO IRIS DEL SUR</option>';
+            Villa_Pobl_options_str  += '<option value="ARTURO MATTE LARRAIN">ARTURO MATTE LARRAIN</option>';
+            Villa_Pobl_options_str  += '<option value="AZIZE READY">AZIZE READY</option>';
+            Villa_Pobl_options_str  += '<option value="BAJOS DE MENA">BAJOS DE MENA</option>';
+            Villa_Pobl_options_str  += '<option value="BALNEARIO LAS VIZCACHAS">BALNEARIO LAS VIZCACHAS</option>';
+            Villa_Pobl_options_str  += '<option value="BERNARDO LEIGHTON">BERNARDO LEIGHTON</option>';
+            Villa_Pobl_options_str  += '<option value="BLANCAS CUMBRES">BLANCAS CUMBRES</option>';
+            Villa_Pobl_options_str  += '<option value="CAMPANARIO PARQUE RESIDENCIAL">CAMPANARIO PARQUE RESIDENCIAL</option>';
+            Villa_Pobl_options_str  += '<option value="CANAEMPU">CANAEMPU</option>';
+            Villa_Pobl_options_str  += '<option value="CARLOS SOTOMAYOR (VICTORIA SOTOMAYOR)">CARLOS SOTOMAYOR (VICTORIA SOTOMAYOR)</option>';
+            Villa_Pobl_options_str  += '<option value="CAROL URZUA">CAROL URZUA</option>';
+            Villa_Pobl_options_str  += '<option value="CASA NUEVA VIDA NUEVA">CASA NUEVA VIDA NUEVA</option>';
+            Villa_Pobl_options_str  += '<option value="CASAS DE LA VIÑA">CASAS DE LA VIÑA</option>';
+            Villa_Pobl_options_str  += '<option value="CASAS DE RUCALHUE">CASAS DE RUCALHUE</option>';
+            Villa_Pobl_options_str  += '<option value="CASAS DE RUCALHUE II">CASAS DE RUCALHUE II</option>';
+            Villa_Pobl_options_str  += '<option value="CASAS DE SAN GUILLERMO">CASAS DE SAN GUILLERMO</option>';
+            Villa_Pobl_options_str  += '<option value="CASAS DE TOCORNAL">CASAS DE TOCORNAL</option>';
+            Villa_Pobl_options_str  += '<option value="CASAS DEL ALTO">CASAS DEL ALTO</option>';
+            Villa_Pobl_options_str  += '<option value="CASAS DEL HUERTO">CASAS DEL HUERTO</option>';
+            Villa_Pobl_options_str  += '<option value="CASAS DEL VIÑEDO">CASAS DEL VIÑEDO</option>';
+            Villa_Pobl_options_str  += '<option value="CASAS PORTAL DEL PARQUE">CASAS PORTAL DEL PARQUE</option>';
+            Villa_Pobl_options_str  += '<option value="CASAS VIEJAS">CASAS VIEJAS</option>';
+            Villa_Pobl_options_str  += '<option value="CERRITO ARRIBA">CERRITO ARRIBA</option>';
+            Villa_Pobl_options_str  += '<option value="CHILOE">CHILOE</option>';
+            Villa_Pobl_options_str  += '<option value="CIELOS ANDINOS">CIELOS ANDINOS</option>';
+            Villa_Pobl_options_str  += '<option value="CIUDAD DEL ESTE">CIUDAD DEL ESTE</option>';
+            Villa_Pobl_options_str  += '<option value="CIUDAD DEL ESTE LOTE KG-EL ALGARROBO">CIUDAD DEL ESTE LOTE KG-EL ALGARROBO</option>';
+            Villa_Pobl_options_str  += '<option value="CIUDAD DEL ESTE-LOS ALERCES">CIUDAD DEL ESTE-LOS ALERCES</option>';
+            Villa_Pobl_options_str  += '<option value="CIUDAD DEL SOL">CIUDAD DEL SOL</option>';
+            Villa_Pobl_options_str  += '<option value="CLUB RESIDENCIAL VALLE DEL SOL">CLUB RESIDENCIAL VALLE DEL SOL</option>';
+            Villa_Pobl_options_str  += '<option value="COLINAS DE CHAYAVIENTOS">COLINAS DE CHAYAVIENTOS</option>';
+            Villa_Pobl_options_str  += '<option value="COLONIA EL PERAL">COLONIA EL PERAL</option>';
+            Villa_Pobl_options_str  += '<option value="COMANDANTE FAVERIO">COMANDANTE FAVERIO</option>';
+            Villa_Pobl_options_str  += '<option value="CONDOMINIO EL CALAFATE">CONDOMINIO EL CALAFATE</option>';
+            Villa_Pobl_options_str  += '<option value="CONDOMINIO LOS PORTONES III">CONDOMINIO LOS PORTONES III</option>';
+            Villa_Pobl_options_str  += '<option value="CONDOMINIO PIE ANDINO">CONDOMINIO PIE ANDINO</option>';
+            Villa_Pobl_options_str  += '<option value="CONJUNTO MISTRAL">CONJUNTO MISTRAL</option>';
+            Villa_Pobl_options_str  += '<option value="CORDILLERA">CORDILLERA</option>';
+            Villa_Pobl_options_str  += '<option value="COSTANERA">COSTANERA</option>';
+            Villa_Pobl_options_str  += '<option value="CRETA">CRETA</option>';
+            Villa_Pobl_options_str  += '<option value="CUMBRES DEL PEÑON">CUMBRES DEL PEÑON</option>';
+            Villa_Pobl_options_str  += '<option value="DEL COMERCIO">DEL COMERCIO</option>';
+            Villa_Pobl_options_str  += '<option value="DIEGO PORTALES EX U. PROGRESO">DIEGO PORTALES EX U. PROGRESO</option>';
+            Villa_Pobl_options_str  += '<option value="DOCTOR SOTERO DEL RIO">DOCTOR SOTERO DEL RIO</option>';
+            Villa_Pobl_options_str  += '<option value="DOMINGO TOCORNAL">DOMINGO TOCORNAL</option>';
+            Villa_Pobl_options_str  += '<option value="DON ANGEL">DON ANGEL</option>';
+            Villa_Pobl_options_str  += '<option value="DON DOMINGO">DON DOMINGO</option>';
+            Villa_Pobl_options_str  += '<option value="DON JOSE MIGUEL">DON JOSE MIGUEL</option>';
+            Villa_Pobl_options_str  += '<option value="DON OSVALDO">DON OSVALDO</option>';
+            Villa_Pobl_options_str  += '<option value="DON PABLO">DON PABLO</option>';
+            Villa_Pobl_options_str  += '<option value="DON RAMON">DON RAMON</option>';
+            Villa_Pobl_options_str  += '<option value="DON VICENTE">DON VICENTE</option>';
+            Villa_Pobl_options_str  += '<option value="DOÑA GABRIELA">DOÑA GABRIELA</option>';
+            Villa_Pobl_options_str  += '<option value="EL ALBA">EL ALBA</option>';
+            Villa_Pobl_options_str  += '<option value="EL ALGARROBO">EL ALGARROBO</option>';
+            Villa_Pobl_options_str  += '<option value="EL ALMENDRAL">EL ALMENDRAL</option>';
+            Villa_Pobl_options_str  += '<option value="EL ARRAYAN">EL ARRAYAN</option>';
+            Villa_Pobl_options_str  += '<option value="EL CALEUCHE">EL CALEUCHE</option>';
+            Villa_Pobl_options_str  += '<option value="EL CORREGIDOR">EL CORREGIDOR</option>';
+            Villa_Pobl_options_str  += '<option value="EL CORREGIDOR 2">EL CORREGIDOR 2</option>';
+            Villa_Pobl_options_str  += '<option value="EL DURAZNAL">EL DURAZNAL</option>';
+            Villa_Pobl_options_str  += '<option value="EL ESFUERZO">EL ESFUERZO</option>';
+            Villa_Pobl_options_str  += '<option value="EL LABRADOR">EL LABRADOR</option>';
+            Villa_Pobl_options_str  += '<option value="EL MARISCAL">EL MARISCAL</option>';
+            Villa_Pobl_options_str  += '<option value="EL MIRADOR DE LOS ANDES">EL MIRADOR DE LOS ANDES</option>';
+            Villa_Pobl_options_str  += '<option value="EL MIRADOR DEL MAIPO">EL MIRADOR DEL MAIPO</option>';
+            Villa_Pobl_options_str  += '<option value="EL PERAL">EL PERAL</option>';
+            Villa_Pobl_options_str  += '<option value="EL PEÑON">EL PEÑON</option>';
+            Villa_Pobl_options_str  += '<option value="EL PEÑON DE MACUL">EL PEÑON DE MACUL</option>';
+            Villa_Pobl_options_str  += '<option value="EL PORVENIR">EL PORVENIR</option>';
+            Villa_Pobl_options_str  += '<option value="EL RACO">EL RACO</option>';
+            Villa_Pobl_options_str  += '<option value="EL REFUGIO">EL REFUGIO</option>';
+            Villa_Pobl_options_str  += '<option value="EL TRANQUE">EL TRANQUE</option>';
+            Villa_Pobl_options_str  += '<option value="EMPART">EMPART</option>';
+            Villa_Pobl_options_str  += '<option value="ENTRE RIOS">ENTRE RIOS</option>';
+            Villa_Pobl_options_str  += '<option value="ESPERANZA">ESPERANZA</option>';
+            Villa_Pobl_options_str  += '<option value="ESTACIONES FERROVIARIAS">ESTACIONES FERROVIARIAS</option>';
+            Villa_Pobl_options_str  += '<option value="EUGENIO MATTE">EUGENIO MATTE</option>';
+            Villa_Pobl_options_str  += '<option value="FALDEOS DE LA VIÑA">FALDEOS DE LA VIÑA</option>';
+            Villa_Pobl_options_str  += '<option value="FRAY CAMILO HENRIQUEZ">FRAY CAMILO HENRIQUEZ</option>';
+            Villa_Pobl_options_str  += '<option value="FUTURO">FUTURO</option>';
+            Villa_Pobl_options_str  += '<option value="GABRIELA ANTIGUA">GABRIELA ANTIGUA</option>';
+            Villa_Pobl_options_str  += '<option value="GABRIELA MISTRAL">GABRIELA MISTRAL</option>';
+            Villa_Pobl_options_str  += '<option value="GRANJAS NUEVAS">GRANJAS NUEVAS</option>';
+            Villa_Pobl_options_str  += '<option value="HACIENDA EL PEÑON">HACIENDA EL PEÑON</option>';
+            Villa_Pobl_options_str  += '<option value="HACIENDA LOS CONQUISTADORES 1">HACIENDA LOS CONQUISTADORES 1</option>';
+            Villa_Pobl_options_str  += '<option value="HACIENDA LOS CONQUISTADORES 2">HACIENDA LOS CONQUISTADORES 2</option>';
+            Villa_Pobl_options_str  += '<option value="HACIENDA LOS CONQUISTADORES 3">HACIENDA LOS CONQUISTADORES 3</option>';
+            Villa_Pobl_options_str  += '<option value="HACIENDA LOS CONQUISTADORES 6">HACIENDA LOS CONQUISTADORES 6</option>';
+            Villa_Pobl_options_str  += '<option value="HERMANOS CARRERA">HERMANOS CARRERA</option>';
+            Villa_Pobl_options_str  += '<option value="HERMANOS DE LA SALLE">HERMANOS DE LA SALLE</option>';
+            Villa_Pobl_options_str  += '<option value="HIJUELA SAN GUILLERMO">HIJUELA SAN GUILLERMO</option>';
+            Villa_Pobl_options_str  += '<option value="HUERTOS FAMILIARES LAS ROSAS">HUERTOS FAMILIARES LAS ROSAS</option>';
+            Villa_Pobl_options_str  += '<option value="HUMBERTO DIAZ CASANUEVA">HUMBERTO DIAZ CASANUEVA</option>';
+            Villa_Pobl_options_str  += '<option value="INDEPENDENCIA">INDEPENDENCIA</option>';
+            Villa_Pobl_options_str  += '<option value="INDEPENDENCIA TOCORNAL">INDEPENDENCIA TOCORNAL</option>';
+            Villa_Pobl_options_str  += '<option value="INES UNDURRAGA">INES UNDURRAGA</option>';
+            Villa_Pobl_options_str  += '<option value="INGENIERO DANIEL RISOPATRON GARMEDIA">INGENIERO DANIEL RISOPATRON GARMEDIA</option>';
+            Villa_Pobl_options_str  += '<option value="JAHUEL SUR">JAHUEL SUR</option>';
+            Villa_Pobl_options_str  += '<option value="JARDIN ORIENTE">JARDIN ORIENTE</option>';
+            Villa_Pobl_options_str  += '<option value="JARDIN ORIENTE II">JARDIN ORIENTE II</option>';
+            Villa_Pobl_options_str  += '<option value="JARDIN ORIENTE III">JARDIN ORIENTE III</option>';
+            Villa_Pobl_options_str  += '<option value="JARDINES DE VICUÑA">JARDINES DE VICUÑA</option>';
+            Villa_Pobl_options_str  += '<option value="JARDINES DEL VALLE">JARDINES DEL VALLE</option>';
+            Villa_Pobl_options_str  += '<option value="JARDINES SAN CARLOS">JARDINES SAN CARLOS</option>';
+            Villa_Pobl_options_str  += '<option value="JARDINES VIZCACHAS">JARDINES VIZCACHAS</option>';
+            Villa_Pobl_options_str  += '<option value="JORGE ALESSANDRI EX GRANJAS ANTIGUAS">JORGE ALESSANDRI EX GRANJAS ANTIGUAS</option>';
+            Villa_Pobl_options_str  += '<option value="LA CAPILLA">LA CAPILLA</option>';
+            Villa_Pobl_options_str  += '<option value="LA CAPILLA II">LA CAPILLA II</option>';
+            Villa_Pobl_options_str  += '<option value="LA CAPILLA III">LA CAPILLA III</option>';
+            Villa_Pobl_options_str  += '<option value="LA CAPILLA V">LA CAPILLA V</option>';
+            Villa_Pobl_options_str  += '<option value="LA FORESTA DE VICUÑA MACKENNA">LA FORESTA DE VICUÑA MACKENNA</option>';
+            Villa_Pobl_options_str  += '<option value="LA FRONTERA">LA FRONTERA</option>';
+            Villa_Pobl_options_str  += '<option value="LA NOGALADA">LA NOGALADA</option>';
+            Villa_Pobl_options_str  += '<option value="LA OBRA">LA OBRA</option>';
+            Villa_Pobl_options_str  += '<option value="LA PLATINA">LA PLATINA</option>';
+            Villa_Pobl_options_str  += '<option value="LA PRIMAVERA">LA PRIMAVERA</option>';
+            Villa_Pobl_options_str  += '<option value="LA SALUD">LA SALUD</option>';
+            Villa_Pobl_options_str  += '<option value="LAS ACACIAS">LAS ACACIAS</option>';
+            Villa_Pobl_options_str  += '<option value="LAS AZALEAS">LAS AZALEAS</option>';
+            Villa_Pobl_options_str  += '<option value="LAS BRISAS">LAS BRISAS</option>';
+            Villa_Pobl_options_str  += '<option value="LAS CALETAS">LAS CALETAS</option>';
+            Villa_Pobl_options_str  += '<option value="LAS CAVAS">LAS CAVAS</option>';
+            Villa_Pobl_options_str  += '<option value="LAS CUMBRES">LAS CUMBRES</option>';
+            Villa_Pobl_options_str  += '<option value="LAS NIEVES">LAS NIEVES</option>';
+            Villa_Pobl_options_str  += '<option value="LAS PERDICES I">LAS PERDICES I</option>';
+            Villa_Pobl_options_str  += '<option value="LAS PERDICES II">LAS PERDICES II</option>';
+            Villa_Pobl_options_str  += '<option value="LAS TERRAZAS DE PUENTE ALTO">LAS TERRAZAS DE PUENTE ALTO</option>';
+            Villa_Pobl_options_str  += '<option value="LAS TORRES">LAS TORRES</option>';
+            Villa_Pobl_options_str  += '<option value="LAS TORRES (EX EL MOLINO)">LAS TORRES (EX EL MOLINO)</option>';
+            Villa_Pobl_options_str  += '<option value="LIBERTADOR BERNARDO OHIGGINS">LIBERTADOR BERNARDO OHIGGINS</option>';
+            Villa_Pobl_options_str  += '<option value="LLAVERIAS 86">LLAVERIAS 86</option>';
+            Villa_Pobl_options_str  += '<option value="LLAVERIAS 88">LLAVERIAS 88</option>';
+            Villa_Pobl_options_str  += '<option value="LO BASCUÑAN">LO BASCUÑAN</option>';
+            Villa_Pobl_options_str  += '<option value="LO TOCORNAL">LO TOCORNAL</option>';
+            Villa_Pobl_options_str  += '<option value="LOMA ORIENTE">LOMA ORIENTE</option>';
+            Villa_Pobl_options_str  += '<option value="LOMAS DE EYZAGUIRRE">LOMAS DE EYZAGUIRRE</option>';
+            Villa_Pobl_options_str  += '<option value="LOMAS DE EYZAGUIRRE II">LOMAS DE EYZAGUIRRE II</option>';
+            Villa_Pobl_options_str  += '<option value="LOMAS DE TOBALABA">LOMAS DE TOBALABA</option>';
+            Villa_Pobl_options_str  += '<option value="LOS ACACIOS">LOS ACACIOS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS ALAMOS">LOS ALAMOS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS ALMENDROS">LOS ALMENDROS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS ALMENDROS 3">LOS ALMENDROS 3</option>';
+            Villa_Pobl_options_str  += '<option value="LOS ALMENDROS GABRIELA">LOS ALMENDROS GABRIELA</option>';
+            Villa_Pobl_options_str  += '<option value="LOS ANDES">LOS ANDES</option>';
+            Villa_Pobl_options_str  += '<option value="LOS ANDES DEL SUR">LOS ANDES DEL SUR</option>';
+            Villa_Pobl_options_str  += '<option value="LOS AROMOS (EX-29 DE SEPTIEMBRE)">LOS AROMOS (EX-29 DE SEPTIEMBRE)</option>';
+            Villa_Pobl_options_str  += '<option value="LOS CANALES">LOS CANALES</option>';
+            Villa_Pobl_options_str  += '<option value="LOS CASTAÑOS">LOS CASTAÑOS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS CASTAÑOS DE LAS VIZCACHAS">LOS CASTAÑOS DE LAS VIZCACHAS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS CIRUELOS">LOS CIRUELOS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS COIGUES">LOS COIGUES</option>';
+            Villa_Pobl_options_str  += '<option value="LOS CONQUISTADORES">LOS CONQUISTADORES</option>';
+            Villa_Pobl_options_str  += '<option value="LOS CONQUISTADORES (VICENTE HUIDOBRO)">LOS CONQUISTADORES (VICENTE HUIDOBRO)</option>';
+            Villa_Pobl_options_str  += '<option value="LOS EVANGELISTAS 2">LOS EVANGELISTAS 2</option>';
+            Villa_Pobl_options_str  += '<option value="LOS EVANGELISTAS 3">LOS EVANGELISTAS 3</option>';
+            Villa_Pobl_options_str  += '<option value="LOS EVANGELISTAS 4">LOS EVANGELISTAS 4</option>';
+            Villa_Pobl_options_str  += '<option value="LOS EVANGELISTAS I">LOS EVANGELISTAS I</option>';
+            Villa_Pobl_options_str  += '<option value="LOS INDUSTRIALES">LOS INDUSTRIALES</option>';
+            Villa_Pobl_options_str  += '<option value="LOS JAZMINES">LOS JAZMINES</option>';
+            Villa_Pobl_options_str  += '<option value="LOS LAGOS">LOS LAGOS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS LIBERTADORES">LOS LIBERTADORES</option>';
+            Villa_Pobl_options_str  += '<option value="LOS NARANJOS">LOS NARANJOS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS NOGALES">LOS NOGALES</option>';
+            Villa_Pobl_options_str  += '<option value="LOS OLIVOS">LOS OLIVOS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS OTOÑALES DE PUENTE ALTO">LOS OTOÑALES DE PUENTE ALTO</option>';
+            Villa_Pobl_options_str  += '<option value="LOS OTOÑALES DE PUENTE ALTO II">LOS OTOÑALES DE PUENTE ALTO II</option>';
+            Villa_Pobl_options_str  += '<option value="LOS PARQUES DE VICUÑA MACKENA">LOS PARQUES DE VICUÑA MACKENA</option>';
+            Villa_Pobl_options_str  += '<option value="LOS PENSAMIENTOS">LOS PENSAMIENTOS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS PINTORES">LOS PINTORES</option>';
+            Villa_Pobl_options_str  += '<option value="LOS PORTALES DE SAN FRANCISCO">LOS PORTALES DE SAN FRANCISCO</option>';
+            Villa_Pobl_options_str  += '<option value="LOS PRADOS">LOS PRADOS</option>';
+            Villa_Pobl_options_str  += '<option value="LOS PRADOS IV (EX LOS NUEVOS PRADOS)">LOS PRADOS IV (EX LOS NUEVOS PRADOS)</option>';
+            Villa_Pobl_options_str  += '<option value="LOS PRODUCTORES">LOS PRODUCTORES</option>';
+            Villa_Pobl_options_str  += '<option value="LOS RIOS (EX MOLINO)">LOS RIOS (EX MOLINO)</option>';
+            Villa_Pobl_options_str  += '<option value="LOS ROBLES DE PUENTE ALTO">LOS ROBLES DE PUENTE ALTO</option>';
+            Villa_Pobl_options_str  += '<option value="LOS SILOS">LOS SILOS</option>';
+            Villa_Pobl_options_str  += '<option value="LOTEO CALLE GABRIELA">LOTEO CALLE GABRIELA</option>';
+            Villa_Pobl_options_str  += '<option value="LOTEO JUANITA ORIENTE">LOTEO JUANITA ORIENTE</option>';
+            Villa_Pobl_options_str  += '<option value="LUCILA">LUCILA</option>';
+            Villa_Pobl_options_str  += '<option value="LUIS MATTE LARRAIN">LUIS MATTE LARRAIN</option>';
+            Villa_Pobl_options_str  += '<option value="MAIPO">MAIPO</option>';
+            Villa_Pobl_options_str  += '<option value="MAMIÑA">MAMIÑA</option>';
+            Villa_Pobl_options_str  += '<option value="MANUEL PLAZA (EX-SAN PEDRO)">MANUEL PLAZA (EX-SAN PEDRO)</option>';
+            Villa_Pobl_options_str  += '<option value="MARCELA PAZ">MARCELA PAZ</option>';
+            Villa_Pobl_options_str  += '<option value="MARIA MAGDALENA">MARIA MAGDALENA</option>';
+            Villa_Pobl_options_str  += '<option value="MARIANO LATORRE">MARIANO LATORRE</option>';
+            Villa_Pobl_options_str  += '<option value="MARTA BRUNETT">MARTA BRUNETT</option>';
+            Villa_Pobl_options_str  += '<option value="MILLACURA">MILLACURA</option>';
+            Villa_Pobl_options_str  += '<option value="MILLANTU">MILLANTU</option>';
+            Villa_Pobl_options_str  += '<option value="MONSEÑOR ALVEAR">MONSEÑOR ALVEAR</option>';
+            Villa_Pobl_options_str  += '<option value="MONTE GRANDE">MONTE GRANDE</option>';
+            Villa_Pobl_options_str  += '<option value="MONTE VERDE">MONTE VERDE</option>';
+            Villa_Pobl_options_str  += '<option value="MONTE VERDE 3">MONTE VERDE 3</option>';
+            Villa_Pobl_options_str  += '<option value="MONTE VERDE 4">MONTE VERDE 4</option>';
+            Villa_Pobl_options_str  += '<option value="MOURGUEZ">MOURGUEZ</option>';
+            Villa_Pobl_options_str  += '<option value="N/A">N/A</option>';
+            Villa_Pobl_options_str  += '<option value="NEVADOS DEL MAIPO">NEVADOS DEL MAIPO</option>';
+            Villa_Pobl_options_str  += '<option value="NOCEDAL">NOCEDAL</option>';
+            Villa_Pobl_options_str  += '<option value="NOCEDAL II">NOCEDAL II</option>';
+            Villa_Pobl_options_str  += '<option value="NONATO COO">NONATO COO</option>';
+            Villa_Pobl_options_str  += '<option value="NUEVA PUENTE ALTO">NUEVA PUENTE ALTO</option>';
+            Villa_Pobl_options_str  += '<option value="NUEVO AMANECER">NUEVO AMANECER</option>';
+            Villa_Pobl_options_str  += '<option value="NUEVO FALDEOS DE LA VIÑA">NUEVO FALDEOS DE LA VIÑA</option>';
+            Villa_Pobl_options_str  += '<option value="NUEVO MUNDO">NUEVO MUNDO</option>';
+            Villa_Pobl_options_str  += '<option value="NUEVO PARQUE SAN FRANCISCO">NUEVO PARQUE SAN FRANCISCO</option>';
+            Villa_Pobl_options_str  += '<option value="NUEVO SIGLO">NUEVO SIGLO</option>';
+            Villa_Pobl_options_str  += '<option value="NUEVOS FALDEOS DE LA VIÑA - LOS NOGALES">NUEVOS FALDEOS DE LA VIÑA - LOS NOGALES</option>';
+            Villa_Pobl_options_str  += '<option value="OBREROS EL VOLCAN (VOLCANITA)">OBREROS EL VOLCAN (VOLCANITA)</option>';
+            Villa_Pobl_options_str  += '<option value="OBREROS MUNICIPALES DE PROVIDENCIA">OBREROS MUNICIPALES DE PROVIDENCIA</option>';
+            Villa_Pobl_options_str  += '<option value="OSCAR BONILLA">OSCAR BONILLA</option>';
+            Villa_Pobl_options_str  += '<option value="PACIFICO SUR">PACIFICO SUR</option>';
+            Villa_Pobl_options_str  += '<option value="PADRE ALBERTO HURTADO">PADRE ALBERTO HURTADO</option>';
+            Villa_Pobl_options_str  += '<option value="PADRE ALVARO LAVIN">PADRE ALVARO LAVIN</option>';
+            Villa_Pobl_options_str  += '<option value="PAPELERA OBRERA">PAPELERA OBRERA</option>';
+            Villa_Pobl_options_str  += '<option value="PARAISO VERDE">PARAISO VERDE</option>';
+            Villa_Pobl_options_str  += '<option value="PARCELAS (DOMINGO TOCORNAL)">PARCELAS (DOMINGO TOCORNAL)</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE ALCANTARA">PARQUE ALCANTARA</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE ALTO">PARQUE ALTO</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE ALTO 3">PARQUE ALTO 3</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE ALTO 4">PARQUE ALTO 4</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE ALTO 5">PARQUE ALTO 5</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE CENTRAL BRISAS DEL MAIPO">PARQUE CENTRAL BRISAS DEL MAIPO</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE CENTRAL BRISAS DEL MAIPO II">PARQUE CENTRAL BRISAS DEL MAIPO II</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE DEL SOL">PARQUE DEL SOL</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE GABRIELA">PARQUE GABRIELA</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE LAS AMERICAS">PARQUE LAS AMERICAS</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE QUILLAY">PARQUE QUILLAY</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE RESIDENCIAL INDEPENDENCIA">PARQUE RESIDENCIAL INDEPENDENCIA</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE RESIDENCIAL LAS CLARAS">PARQUE RESIDENCIAL LAS CLARAS</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE RESIDENCIAL MONTE ANDINO">PARQUE RESIDENCIAL MONTE ANDINO</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE SAN CARLOS">PARQUE SAN CARLOS</option>';
+            Villa_Pobl_options_str  += '<option value="PARQUE SAN FRANCISCO">PARQUE SAN FRANCISCO</option>';
+            Villa_Pobl_options_str  += '<option value="PASO ALTO 1 Y 2">PASO ALTO 1 Y 2</option>';
+            Villa_Pobl_options_str  += '<option value="PEDRO AGUIRRE CERDA">PEDRO AGUIRRE CERDA</option>';
+            Villa_Pobl_options_str  += '<option value="PEDRO LIRA RENCORET">PEDRO LIRA RENCORET</option>';
+            Villa_Pobl_options_str  += '<option value="PIRCAS DEL MAIPO">PIRCAS DEL MAIPO</option>';
+            Villa_Pobl_options_str  += '<option value="PLAZA MAGNA">PLAZA MAGNA</option>';
+            Villa_Pobl_options_str  += '<option value="PLAZA VIVA 2">PLAZA VIVA 2</option>';
+            Villa_Pobl_options_str  += '<option value="PLAZUELA LOS TOROS">PLAZUELA LOS TOROS</option>';
+            Villa_Pobl_options_str  += '<option value="PORTAL ANDINO">PORTAL ANDINO</option>';
+            Villa_Pobl_options_str  += '<option value="PORTAL DEL VALLE BARRIO SUR">PORTAL DEL VALLE BARRIO SUR</option>';
+            Villa_Pobl_options_str  += '<option value="PORTEZUELO DE TOBALABA">PORTEZUELO DE TOBALABA</option>';
+            Villa_Pobl_options_str  += '<option value="PORTEZUELO DE TOBALABA III">PORTEZUELO DE TOBALABA III</option>';
+            Villa_Pobl_options_str  += '<option value="PORTEZUELO DE TOBALABA ORIENTE">PORTEZUELO DE TOBALABA ORIENTE</option>';
+            Villa_Pobl_options_str  += '<option value="PROFESOR JUAN GOMEZ MILLAS">PROFESOR JUAN GOMEZ MILLAS</option>';
+            Villa_Pobl_options_str  += '<option value="PROFESOR JUAN GOMEZ MILLAS 2">PROFESOR JUAN GOMEZ MILLAS 2</option>';
+            Villa_Pobl_options_str  += '<option value="RAFAEL CLAVERO">RAFAEL CLAVERO</option>';
+            Villa_Pobl_options_str  += '<option value="REY BALDUINO">REY BALDUINO</option>';
+            Villa_Pobl_options_str  += '<option value="SAN ALBERTO CASAS VIEJAS II">SAN ALBERTO CASAS VIEJAS II</option>';
+            Villa_Pobl_options_str  += '<option value="SAN ALBERTO DE CASAS VIEJAS">SAN ALBERTO DE CASAS VIEJAS</option>';
+            Villa_Pobl_options_str  += '<option value="SAN ALBERTO DE CASAS VIEJAS III">SAN ALBERTO DE CASAS VIEJAS III</option>';
+            Villa_Pobl_options_str  += '<option value="SAN CARLOS">SAN CARLOS</option>';
+            Villa_Pobl_options_str  += '<option value="SAN CARLOS DE VICUÑA MACKENNA">SAN CARLOS DE VICUÑA MACKENNA</option>';
+            Villa_Pobl_options_str  += '<option value="SAN FRANCISCO DE ASIS">SAN FRANCISCO DE ASIS</option>';
+            Villa_Pobl_options_str  += '<option value="SAN GERONIMO">SAN GERONIMO</option>';
+            Villa_Pobl_options_str  += '<option value="SAN JOSE DE LAS CLARAS">SAN JOSE DE LAS CLARAS</option>';
+            Villa_Pobl_options_str  += '<option value="SAN LAZARO Y SAN JOSE OBRERO">SAN LAZARO Y SAN JOSE OBRERO</option>';
+            Villa_Pobl_options_str  += '<option value="SAN MIGUEL">SAN MIGUEL</option>';
+            Villa_Pobl_options_str  += '<option value="SAN PEDRO">SAN PEDRO</option>';
+            Villa_Pobl_options_str  += '<option value="SAN PEDRO Y SAN PABLO I">SAN PEDRO Y SAN PABLO I</option>';
+            Villa_Pobl_options_str  += '<option value="SANTA ELVIRA">SANTA ELVIRA</option>';
+            Villa_Pobl_options_str  += '<option value="SANTA ESTER">SANTA ESTER</option>';
+            Villa_Pobl_options_str  += '<option value="SANTA FELICIA">SANTA FELICIA</option>';
+            Villa_Pobl_options_str  += '<option value="SANTA GABRIELA">SANTA GABRIELA</option>';
+            Villa_Pobl_options_str  += '<option value="SANTA MARIA DEL PEÑON">SANTA MARIA DEL PEÑON</option>';
+            Villa_Pobl_options_str  += '<option value="SANTA MARTA">SANTA MARTA</option>';
+            Villa_Pobl_options_str  += '<option value="SANTA MATILDE ORIENTE">SANTA MATILDE ORIENTE</option>';
+            Villa_Pobl_options_str  += '<option value="SANTA MATILDE PONIENTE">SANTA MATILDE PONIENTE</option>';
+            Villa_Pobl_options_str  += '<option value="SANTA MONICA">SANTA MONICA</option>';
+            Villa_Pobl_options_str  += '<option value="SARGENTO MENADIER">SARGENTO MENADIER</option>';
+            Villa_Pobl_options_str  += '<option value="SECTOR CENTRO">SECTOR CENTRO</option>';
+            Villa_Pobl_options_str  += '<option value="SOR TERESA">SOR TERESA</option>';
+            Villa_Pobl_options_str  += '<option value="SU CASA">SU CASA</option>';
+            Villa_Pobl_options_str  += '<option value="TENIENTE MERINO">TENIENTE MERINO</option>';
+            Villa_Pobl_options_str  += '<option value="TERESA DE CALCUTA ETAPA 4">TERESA DE CALCUTA ETAPA 4</option>';
+            Villa_Pobl_options_str  += '<option value="TERRA NOVA">TERRA NOVA</option>';
+            Villa_Pobl_options_str  += '<option value="TERRANDINA">TERRANDINA</option>';
+            Villa_Pobl_options_str  += '<option value="TORREONES NOGALADA">TORREONES NOGALADA</option>';
+            Villa_Pobl_options_str  += '<option value="VALLE ALEGRE">VALLE ALEGRE</option>';
+            Villa_Pobl_options_str  += '<option value="VALLE DEL ELQUI">VALLE DEL ELQUI</option>';
+            Villa_Pobl_options_str  += '<option value="VALLE VERDE">VALLE VERDE</option>';
+            Villa_Pobl_options_str  += '<option value="VICENTE PEREZ ROSALES">VICENTE PEREZ ROSALES</option>';
+            Villa_Pobl_options_str  += '<option value="VILLA ESPAÑA">VILLA ESPAÑA</option>';
+            Villa_Pobl_options_str  += '<option value="VILLA EUROPA">VILLA EUROPA</option>';
+            Villa_Pobl_options_str  += '<option value="VILLA HORIZONTE">VILLA HORIZONTE</option>';
+            Villa_Pobl_options_str  += '<option value="VILLA PUENTE ALTO">VILLA PUENTE ALTO</option>';
+            Villa_Pobl_options_str  += '<option value="VILLA REAL">VILLA REAL</option>';
+            Villa_Pobl_options_str  += '<option value="VILLA SANTA CATALINA">VILLA SANTA CATALINA</option>';
+            Villa_Pobl_options_str  += '<option value="VISTA HERMOSA">VISTA HERMOSA</option>';
+            Villa_Pobl_options_str  += '<option value="VIÑAS UNIDAS">VIÑAS UNIDAS</option>';
+            Villa_Pobl_options_str  += '<option value="VOLCAN SAN JOSE">VOLCAN SAN JOSE</option>';
+            sel_Villa_Pobl.innerHTML = Villa_Pobl_options_str;
+            div_Villa_Pobl.appendChild(sel_Villa_Pobl);
+            var lab_Villa_Pobl = document.createElement('div');
+            lab_Villa_Pobl.innerHTML = 'Villa_Pobl';
+            lab_Villa_Pobl.className = 'filterlabel';
+            div_Villa_Pobl.appendChild(lab_Villa_Pobl);
+            var reset_Villa_Pobl = document.createElement('div');
+            reset_Villa_Pobl.innerHTML = 'clear filter';
+            reset_Villa_Pobl.className = 'filterlabel';
+            reset_Villa_Pobl.onclick = function() {
+                var options = document.getElementById("sel_Villa_Pobl").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_Villa_Pobl.appendChild(reset_Villa_Pobl);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_Respuesta = document.createElement('div');
+            div_Respuesta.id = "div_Respuesta";
+            div_Respuesta.className= "filterselect";
+            document.getElementById("menu").appendChild(div_Respuesta);
+            sel_Respuesta = document.createElement('select');
+            sel_Respuesta.multiple = true;
+            sel_Respuesta.size = 10;
+            sel_Respuesta.id = "sel_Respuesta";
+            var Respuesta_options_str = "<option value='' unselected></option>";
+            sel_Respuesta.onchange = function(){filterFunc()};
+            Respuesta_options_str  += '<option value="NULL">NULL</option>';
+            Respuesta_options_str  += '<option value="Escombro retirado por particular">Escombro retirado por particular</option>';
+            Respuesta_options_str  += '<option value="Se repite tiket">Se repite tiket</option>';
+            Respuesta_options_str  += '<option value="Sin respuesta">Sin respuesta</option>';
+            Respuesta_options_str  += '<option value="Solicitante deja nulo ticket">Solicitante deja nulo ticket</option>';
+            Respuesta_options_str  += '<option value="fuera de plazo">fuera de plazo</option>';
+            Respuesta_options_str  += '<option value="no se observan escombros via publica">no se observan escombros via publica</option>';
+            Respuesta_options_str  += '<option value="se realiza retiro de escombros">se realiza retiro de escombros</option>';
+            Respuesta_options_str  += '<option value="sin acceso a material de escombro">sin acceso a material de escombro</option>';
+            Respuesta_options_str  += '<option value="sin moradores">sin moradores</option>';
+            sel_Respuesta.innerHTML = Respuesta_options_str;
+            div_Respuesta.appendChild(sel_Respuesta);
+            var lab_Respuesta = document.createElement('div');
+            lab_Respuesta.innerHTML = 'Respuesta';
+            lab_Respuesta.className = 'filterlabel';
+            div_Respuesta.appendChild(lab_Respuesta);
+            var reset_Respuesta = document.createElement('div');
+            reset_Respuesta.innerHTML = 'clear filter';
+            reset_Respuesta.className = 'filterlabel';
+            reset_Respuesta.onclick = function() {
+                var options = document.getElementById("sel_Respuesta").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_Respuesta.appendChild(reset_Respuesta);
+        resetLabels([layer_UNIDADES_VECINALES_3]);
+        map.on("zoomend", function(){
+            resetLabels([layer_UNIDADES_VECINALES_3]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_UNIDADES_VECINALES_3]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_UNIDADES_VECINALES_3]);
+        });
+        </script>
+    </body>
+</html>
